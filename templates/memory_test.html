@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Memory Test - Dementia Detection System{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="test-header">
+        <h1 class="test-title">Memory Assessment Test</h1>
+        <p class="test-description">This test evaluates short-term and long-term memory recall abilities</p>
+    </div>
+
+    <div id="instructionsSection" class="card">
+        <div class="card-header">Test Instructions</div>
+        <div class="card-body">
+            <p style="margin-bottom: 1rem;">This memory test consists of three phases:</p>
+            <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.8;">
+                <li><strong>Memorization Phase:</strong> You will be shown a list of words to remember</li>
+                <li><strong>Distraction Phase:</strong> You will answer some simple questions</li>
+                <li><strong>Recall Phase:</strong> You will be asked to recall the words from memory</li>
+            </ol>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Take your time and try to remember as many words as possible. This test takes approximately 5-7 minutes.
+            </p>
+            <button onclick="startMemoryTest()" class="btn btn-primary btn-lg">Start Memory Test</button>
+        </div>
+    </div>
+
+    <div id="memorizationSection" class="card hidden">
+        <div class="card-header">Phase 1: Memorization</div>
+        <div class="card-body">
+            <p style="margin-bottom: 2rem; text-align: center; color: var(--text-secondary);">
+                Study these words carefully. You will have 60 seconds.
+            </p>
+            <div id="wordList" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; font-size: 1.5rem; font-weight: 600; text-align: center; margin-bottom: 2rem;">
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color); margin-bottom: 1rem;" id="timer">60</div>
+                <p style="color: var(--text-secondary);">seconds remaining</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="distractionSection" class="card hidden">
+        <div class="card-header">Phase 2: Distraction Tasks</div>
+        <div class="card-body">
+            <div id="distractionQuestion"></div>
+            <button onclick="nextDistraction()" class="btn btn-primary mt-3">Next</button>
+        </div>
+    </div>
+
+    <div id="recallSection" class="card hidden">
+        <div class="card-header">Phase 3: Recall</div>
+        <div class="card-body">
+            <p style="margin-bottom: 2rem; color: var(--text-secondary);">
+                Select all the words you remember from the list you studied earlier:
+            </p>
+            <div id="recallOptions" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            </div>
+            <button onclick="submitMemoryTest()" class="btn btn-success btn-lg mt-4 w-full">Submit Test</button>
+        </div>
+    </div>
+
+    <div id="resultsSection" class="hidden">
+        <div class="card">
+            <div class="card-header">Memory Test Results</div>
+            <div class="card-body">
+                <div class="grid grid-cols-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="correctRecall">0</div>
+                        <div class="stat-label">Correct Recalls</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="memoryScore">0</div>
+                        <div class="stat-label">Memory Score</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="recallRate">0%</div>
+                        <div class="stat-label">Recall Rate</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 style="margin-bottom: 1rem;">Performance Analysis</h3>
+                    <div id="performanceAnalysis"></div>
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const memoryWords = ['APPLE', 'CHAIR', 'OCEAN', 'GUITAR', 'MOUNTAIN', 'COFFEE', 'BICYCLE', 'SUNSET', 'GARDEN', 'PIANO'];
+const distractorWords = ['TABLE', 'RIVER', 'VIOLIN', 'FOREST', 'BREAKFAST', 'SCOOTER', 'SUNRISE', 'PARK', 'DRUMS', 'ORANGE'];
+
+const distractionQuestions = [
+    { question: 'What is 25 + 17?', options: ['42', '41', '43', '40'], correct: 0 },
+    { question: 'How many days are in a week?', options: ['7', '6', '8', '5'], correct: 0 },
+    { question: 'What color is the sky on a clear day?', options: ['Blue', 'Green', 'Red', 'Yellow'], correct: 0 },
+    { question: 'What is 100 - 35?', options: ['65', '64', '66', '63'], correct: 0 },
+    { question: 'How many months are in a year?', options: ['12', '11', '13', '10'], correct: 0 }
+];
+
+let currentDistraction = 0;
+let selectedWords = [];
+let timerInterval;
+
+function startMemoryTest() {
+    document.getElementById('instructionsSection').classList.add('hidden');
+    document.getElementById('memorizationSection').classList.remove('hidden');
+    
+    // Display words
+    const wordList = document.getElementById('wordList');
+    memoryWords.forEach(word => {
+        const wordDiv = document.createElement('div');
+        wordDiv.textContent = word;
+        wordDiv.style.padding = '1rem';
+        wordDiv.style.backgroundColor = 'var(--bg-color)';
+        wordDiv.style.borderRadius = '0.5rem';
+        wordList.appendChild(wordDiv);
+    });
+    
+    // Start timer
+    let timeLeft = 60;
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            startDistractionPhase();
+        }
+    }, 1000);
+}
+
+function startDistractionPhase() {
+    document.getElementById('memorizationSection').classList.add('hidden');
+    document.getElementById('distractionSection').classList.remove('hidden');
+    loadDistractionQuestion();
+}
+
+function loadDistractionQuestion() {
+    const question = distractionQuestions[currentDistraction];
+    let html = `
+        <div class="test-question">
+            <div class="question-text">${question.question}</div>
+            <div class="options">
+    `;
+    
+    question.options.forEach((option, index) => {
+        html += `
+            <div class="option" onclick="selectDistractionOption(${index})">
+                ${option}
+            </div>
+        `;
+    });
+    
+    html += `</div></div>`;
+    document.getElementById('distractionQuestion').innerHTML = html;
+}
+
+function selectDistractionOption(index) {
+    const options = document.querySelectorAll('#distractionQuestion .option');
+    options.forEach((opt, i) => {
+        opt.classList.toggle('selected', i === index);
+    });
+}
+
+function nextDistraction() {
+    currentDistraction++;
+    if (currentDistraction < distractionQuestions.length) {
+        loadDistractionQuestion();
+    } else {
+        startRecallPhase();
+    }
+}
+
+function startRecallPhase() {
+    document.getElementById('distractionSection').classList.add('hidden');
+    document.getElementById('recallSection').classList.remove('hidden');
+    
+    // Mix memory words with distractor words
+    const allWords = [...memoryWords, ...distractorWords].sort(() => Math.random() - 0.5);
+    
+    const recallOptions = document.getElementById('recallOptions');
+    allWords.forEach(word => {
+        const wordDiv = document.createElement('div');
+        wordDiv.className = 'option';
+        wordDiv.textContent = word;
+        wordDiv.onclick = () => toggleWordSelection(word, wordDiv);
+        recallOptions.appendChild(wordDiv);
+    });
+}
+
+function toggleWordSelection(word, element) {
+    if (selectedWords.includes(word)) {
+        selectedWords = selectedWords.filter(w => w !== word);
+        element.classList.remove('selected');
+    } else {
+        selectedWords.push(word);
+        element.classList.add('selected');
+    }
+}
+
+async function submitMemoryTest() {
+    // Calculate results
+    const correctRecalls = selectedWords.filter(word => memoryWords.includes(word)).length;
+    const falseRecalls = selectedWords.filter(word => !memoryWords.includes(word)).length;
+    const missedWords = memoryWords.filter(word => !selectedWords.includes(word)).length;
+    
+    const recallRate = (correctRecalls / memoryWords.length) * 100;
+    const precision = selectedWords.length > 0 ? (correctRecalls / selectedWords.length) * 100 : 0;
+    const memoryScore = (recallRate + precision) / 2;
+    
+    // Submit to backend
+    const response = await fetch('/api/submit-memory-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            correct_recalls: correctRecalls,
+            false_recalls: falseRecalls,
+            total_words: memoryWords.length,
+            memory_score: memoryScore
+        })
+    });
+    
+    const result = await response.json();
+    displayResults(correctRecalls, memoryScore, recallRate, precision, missedWords, falseRecalls);
+}
+
+function displayResults(correct, score, recallRate, precision, missed, falseRecalls) {
+    document.getElementById('recallSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    document.getElementById('correctRecall').textContent = correct + '/' + memoryWords.length;
+    document.getElementById('memoryScore').textContent = score.toFixed(1);
+    document.getElementById('recallRate').textContent = recallRate.toFixed(1) + '%';
+    
+    let analysis = `
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 0.5rem;">
+            <p style="margin-bottom: 0.5rem;"><strong>Correct Recalls:</strong> ${correct} words</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Missed Words:</strong> ${missed} words</p>
+            <p style="margin-bottom: 0.5rem;"><strong>False Recalls:</strong> ${falseRecalls} words</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Precision:</strong> ${precision.toFixed(1)}%</p>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">
+                ${score >= 80 ? 'Excellent memory performance! Your recall abilities are strong.' :
+                  score >= 60 ? 'Good memory performance. Some areas could benefit from practice.' :
+                  score >= 40 ? 'Fair memory performance. Consider memory exercises and techniques.' :
+                  'Memory performance needs attention. Please consult with a healthcare professional.'}
+            </p>
+        </div>
+    `;
+    
+    document.getElementById('performanceAnalysis').innerHTML = analysis;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,3 @@
+test_id,patient_id,test_type,score,risk_score,timestamp,details
+CT20251001153417,P001,Cognitive,9.0,91.0,2025-10-01T15:34:17.756051,"{""memory"": 18, ""attention"": 0, ""language"": 6, ""executive"": 12}"
+SA20251001153711,P001,Speech,46.666666666666664,53.333333333333336,2025-10-01T15:37:11.137157,"{""fluency"": 7, ""coherence"": 33, ""vocabulary"": 100, ""pauses"": ""Frequent""}"

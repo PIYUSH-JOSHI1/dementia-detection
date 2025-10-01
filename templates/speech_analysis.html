@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Speech Analysis - Dementia Detection System{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="test-header">
+        <h1 class="test-title">Speech Pattern Analysis</h1>
+        <p class="test-description">AI-powered analysis of speech fluency, coherence, and vocabulary</p>
+    </div>
+
+    <div id="instructionsSection" class="card">
+        <div class="card-header">Test Instructions</div>
+        <div class="card-body">
+            <p style="margin-bottom: 1rem;">This speech analysis test evaluates:</p>
+            <ul style="margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.8;">
+                <li><strong>Fluency:</strong> How smoothly you can speak without hesitations</li>
+                <li><strong>Coherence:</strong> How well your thoughts are organized and connected</li>
+                <li><strong>Vocabulary:</strong> The richness and appropriateness of your word choices</li>
+                <li><strong>Pause Patterns:</strong> Analysis of speech rhythm and pauses</li>
+            </ul>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                You will be asked to describe images and answer questions. Speak naturally and take your time.
+            </p>
+            <button onclick="startSpeechTest()" class="btn btn-primary btn-lg">Start Speech Analysis</button>
+        </div>
+    </div>
+
+    <div id="testSection" class="card hidden">
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="testContent"></div>
+        <div class="flex justify-between mt-4">
+            <button onclick="previousTask()" id="prevBtn" class="btn btn-secondary" style="display: none;">Previous</button>
+            <button onclick="nextTask()" id="nextBtn" class="btn btn-primary">Next</button>
+            <button onclick="submitSpeechTest()" id="submitBtn" class="btn btn-success" style="display: none;">Submit Analysis</button>
+        </div>
+    </div>
+
+    <div id="resultsSection" class="hidden">
+        <div class="card">
+            <div class="card-header">Speech Analysis Results</div>
+            <div class="card-body">
+                <div class="grid grid-cols-2">
+                    <div class="stat-card">
+                        <div class="stat-value" id="fluencyScore">0</div>
+                        <div class="stat-label">Fluency Score</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="coherenceScore">0</div>
+                        <div class="stat-label">Coherence Score</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="vocabularyScore">0</div>
+                        <div class="stat-label">Vocabulary Score</div>
+                    </div>
+                    <div class="stat-card" id="overallCard">
+                        <div class="stat-value" id="overallScore">0</div>
+                        <div class="stat-label">Overall Score</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 style="margin-bottom: 1rem;">Detailed Analysis</h3>
+                    <div id="detailedAnalysis"></div>
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const speechTasks = [
+    {
+        type: 'description',
+        prompt: 'Describe what you see in a typical kitchen. Include as many details as possible.',
+        category: 'fluency',
+        placeholder: 'Type your description here...'
+    },
+    {
+        type: 'narrative',
+        prompt: 'Tell me about a memorable event from your childhood. What happened and how did you feel?',
+        category: 'coherence',
+        placeholder: 'Type your narrative here...'
+    },
+    {
+        type: 'explanation',
+        prompt: 'Explain how to make a cup of tea or coffee, step by step.',
+        category: 'coherence',
+        placeholder: 'Type your explanation here...'
+    },
+    {
+        type: 'vocabulary',
+        prompt: 'Name as many different types of animals as you can think of.',
+        category: 'vocabulary',
+        placeholder: 'Type animals separated by commas...'
+    },
+    {
+        type: 'vocabulary',
+        prompt: 'List different words that describe emotions or feelings.',
+        category: 'vocabulary',
+        placeholder: 'Type emotions separated by commas...'
+    },
+    {
+        type: 'fluency',
+        prompt: 'Describe your daily morning routine from waking up to leaving home.',
+        category: 'fluency',
+        placeholder: 'Type your routine here...'
+    }
+];
+
+let currentTask = 0;
+let responses = {};
+
+function startSpeechTest() {
+    document.getElementById('instructionsSection').classList.add('hidden');
+    document.getElementById('testSection').classList.remove('hidden');
+    loadTask();
+}
+
+function loadTask() {
+    const task = speechTasks[currentTask];
+    const progress = ((currentTask + 1) / speechTasks.length) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    
+    let html = `
+        <div class="test-question">
+            <div class="question-number">Task ${currentTask + 1} of ${speechTasks.length}</div>
+            <div class="question-text">${task.prompt}</div>
+            <div class="form-group mt-3">
+                <textarea 
+                    id="responseText" 
+                    class="form-textarea" 
+                    rows="8" 
+                    placeholder="${task.placeholder}"
+                    style="font-size: 1rem;"
+                >${responses[currentTask] || ''}</textarea>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-color); border-radius: 0.5rem;">
+                <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                    <strong>Tip:</strong> Speak naturally and write as you would speak. There are no wrong answers.
+                </p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('testContent').innerHTML = html;
+    
+    // Update button visibility
+    document.getElementById('prevBtn').style.display = currentTask > 0 ? 'block' : 'none';
+    document.getElementById('nextBtn').style.display = currentTask < speechTasks.length - 1 ? 'block' : 'none';
+    document.getElementById('submitBtn').style.display = currentTask === speechTasks.length - 1 ? 'block' : 'none';
+}
+
+function saveCurrentResponse() {
+    const response = document.getElementById('responseText').value;
+    responses[currentTask] = response;
+}
+
+function nextTask() {
+    saveCurrentResponse();
+    if (!responses[currentTask] || responses[currentTask].trim().length < 10) {
+        alert('Please provide a more detailed response before proceeding.');
+        return;
+    }
+    currentTask++;
+    loadTask();
+}
+
+function previousTask() {
+    saveCurrentResponse();
+    currentTask--;
+    loadTask();
+}
+
+async function submitSpeechTest() {
+    saveCurrentResponse();
+    
+    if (!responses[currentTask] || responses[currentTask].trim().length < 10) {
+        alert('Please provide a response before submitting.');
+        return;
+    }
+    
+    // Analyze responses
+    const analysis = analyzeSpeech();
+    
+    // Submit to backend
+    const response = await fetch('/api/submit-speech-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            fluency_score: analysis.fluency,
+            coherence_score: analysis.coherence,
+            vocabulary_score: analysis.vocabulary,
+            pause_analysis: analysis.pausePattern
+        })
+    });
+    
+    const result = await response.json();
+    displayResults(analysis);
+}
+
+function analyzeSpeech() {
+    let fluencyScore = 0;
+    let coherenceScore = 0;
+    let vocabularyScore = 0;
+    let totalWords = 0;
+    let uniqueWords = new Set();
+    
+    // Analyze each response
+    Object.values(responses).forEach((response, index) => {
+        const words = response.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        totalWords += words.length;
+        words.forEach(word => uniqueWords.add(word));
+        
+        const task = speechTasks[index];
+        
+        // Fluency scoring (based on response length and completeness)
+        if (task.category === 'fluency') {
+            fluencyScore += Math.min(100, (words.length / 50) * 100);
+        }
+        
+        // Coherence scoring (based on sentence structure)
+        if (task.category === 'coherence') {
+            const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            coherenceScore += Math.min(100, (sentences.length / 3) * 100);
+        }
+        
+        // Vocabulary scoring (based on unique words)
+        if (task.category === 'vocabulary') {
+            const items = response.split(',').filter(i => i.trim().length > 0);
+            vocabularyScore += Math.min(100, (items.length / 10) * 100);
+        }
+    });
+    
+    // Calculate averages
+    const fluencyTasks = speechTasks.filter(t => t.category === 'fluency').length;
+    const coherenceTasks = speechTasks.filter(t => t.category === 'coherence').length;
+    const vocabularyTasks = speechTasks.filter(t => t.category === 'vocabulary').length;
+    
+    fluencyScore = fluencyTasks > 0 ? fluencyScore / fluencyTasks : 0;
+    coherenceScore = coherenceTasks > 0 ? coherenceScore / coherenceTasks : 0;
+    vocabularyScore = vocabularyTasks > 0 ? vocabularyScore / vocabularyTasks : 0;
+    
+    // Vocabulary richness bonus
+    const vocabularyRichness = (uniqueWords.size / totalWords) * 100;
+    vocabularyScore = Math.min(100, vocabularyScore + vocabularyRichness);
+    
+    // Pause pattern analysis (simulated based on response characteristics)
+    const avgWordsPerResponse = totalWords / Object.keys(responses).length;
+    const pausePattern = avgWordsPerResponse > 40 ? 'Normal' : avgWordsPerResponse > 20 ? 'Moderate' : 'Frequent';
+    
+    return {
+        fluency: Math.round(fluencyScore),
+        coherence: Math.round(coherenceScore),
+        vocabulary: Math.round(vocabularyScore),
+        pausePattern: pausePattern,
+        totalWords: totalWords,
+        uniqueWords: uniqueWords.size,
+        vocabularyRichness: vocabularyRichness.toFixed(1)
+    };
+}
+
+function displayResults(analysis) {
+    document.getElementById('testSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    const overallScore = Math.round((analysis.fluency + analysis.coherence + analysis.vocabulary) / 3);
+    
+    document.getElementById('fluencyScore').textContent = analysis.fluency;
+    document.getElementById('coherenceScore').textContent = analysis.coherence;
+    document.getElementById('vocabularyScore').textContent = analysis.vocabulary;
+    document.getElementById('overallScore').textContent = overallScore;
+    
+    const overallCard = document.getElementById('overallCard');
+    if (overallScore >= 80) {
+        overallCard.style.background = 'linear-gradient(135deg, var(--success-color), #059669)';
+    } else if (overallScore >= 60) {
+        overallCard.style.background = 'linear-gradient(135deg, var(--warning-color), #d97706)';
+    } else {
+        overallCard.style.background = 'linear-gradient(135deg, var(--danger-color), #dc2626)';
+    }
+    
+    let detailedHtml = `
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 0.5rem;">
+            <div class="grid grid-cols-2" style="margin-bottom: 1rem;">
+                <p><strong>Total Words:</strong> ${analysis.totalWords}</p>
+                <p><strong>Unique Words:</strong> ${analysis.uniqueWords}</p>
+                <p><strong>Vocabulary Richness:</strong> ${analysis.vocabularyRichness}%</p>
+                <p><strong>Pause Pattern:</strong> ${analysis.pausePattern}</p>
+            </div>
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 0.5rem;">Clinical Interpretation:</h4>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    ${overallScore >= 80 ? 'Your speech patterns show strong fluency, coherence, and vocabulary. No significant concerns detected.' :
+                      overallScore >= 60 ? 'Your speech patterns are generally good with some minor variations. Continue monitoring and practice.' :
+                      overallScore >= 40 ? 'Some speech pattern variations detected. Consider follow-up assessment with a healthcare professional.' :
+                      'Significant speech pattern variations detected. Please consult with a healthcare professional for comprehensive evaluation.'}
+                </p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detailedAnalysis').innerHTML = detailedHtml;
+}
+</script>
+{% endblock %}

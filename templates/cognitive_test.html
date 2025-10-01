@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Assessment - Dementia Detection System{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="test-header">
+        <h1 class="test-title">Comprehensive Cognitive Assessment</h1>
+        <p class="test-description">This test evaluates memory, attention, language, and executive function</p>
+    </div>
+
+    <div class="progress-bar">
+        <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+    </div>
+
+    <div id="testContent" class="card">
+         Test questions will be loaded here 
+    </div>
+
+    <div class="flex justify-between mt-4">
+        <button id="prevBtn" onclick="previousQuestion()" class="btn btn-secondary" style="display: none;">Previous</button>
+        <button id="nextBtn" onclick="nextQuestion()" class="btn btn-primary">Next</button>
+        <button id="submitBtn" onclick="submitTest()" class="btn btn-success" style="display: none;">Submit Test</button>
+    </div>
+
+    <div id="resultsSection" class="hidden">
+        <div class="card">
+            <div class="card-header">Test Results</div>
+            <div class="card-body">
+                <div class="grid grid-cols-2">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalScore">0</div>
+                        <div class="stat-label">Total Score</div>
+                    </div>
+                    <div class="stat-card" id="riskCard">
+                        <div class="stat-value" id="riskScore">0</div>
+                        <div class="stat-label">Risk Score</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 style="margin-bottom: 1rem;">Score Breakdown</h3>
+                    <div class="grid grid-cols-2">
+                        <p><strong>Memory:</strong> <span id="memoryScore">0</span>%</p>
+                        <p><strong>Attention:</strong> <span id="attentionScore">0</span>%</p>
+                        <p><strong>Language:</strong> <span id="languageScore">0</span>%</p>
+                        <p><strong>Executive Function:</strong> <span id="executiveScore">0</span>%</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const cognitiveQuestions = [
+    // Memory Questions (4 questions)
+    {
+        category: 'memory',
+        question: 'Remember these three words: Apple, Table, Penny. What were the three words?',
+        type: 'recall',
+        options: ['Apple, Table, Penny', 'Orange, Chair, Dime', 'Banana, Desk, Quarter', 'Grape, Sofa, Nickel'],
+        correct: 0
+    },
+    {
+        category: 'memory',
+        question: 'What did you have for breakfast today?',
+        type: 'personal',
+        options: ['I remember clearly', 'I remember somewhat', 'I am not sure', 'I do not remember'],
+        scores: [100, 75, 50, 25]
+    },
+    {
+        category: 'memory',
+        question: 'Can you recall what year you were born?',
+        type: 'personal',
+        options: ['Yes, immediately', 'Yes, after thinking', 'Not sure', 'No'],
+        scores: [100, 75, 50, 25]
+    },
+    {
+        category: 'memory',
+        question: 'Look at this sequence: 2, 4, 6, 8. What comes next?',
+        type: 'pattern',
+        options: ['10', '9', '12', '7'],
+        correct: 0
+    },
+    
+    // Attention Questions (4 questions)
+    {
+        category: 'attention',
+        question: 'Count backwards from 100 by 7s. What is 100 - 7?',
+        type: 'calculation',
+        options: ['93', '92', '94', '91'],
+        correct: 0
+    },
+    {
+        category: 'attention',
+        question: 'Spell the word "WORLD" backwards.',
+        type: 'spelling',
+        options: ['DLROW', 'DLORW', 'DLROW', 'DROWL'],
+        correct: 0
+    },
+    {
+        category: 'attention',
+        question: 'How many months have 28 days?',
+        type: 'logic',
+        options: ['All of them', 'One', 'Two', 'None'],
+        correct: 0
+    },
+    {
+        category: 'attention',
+        question: 'What is 15 + 27?',
+        type: 'calculation',
+        options: ['42', '41', '43', '40'],
+        correct: 0
+    },
+    
+    // Language Questions (4 questions)
+    {
+        category: 'language',
+        question: 'What is the opposite of "hot"?',
+        type: 'vocabulary',
+        options: ['Cold', 'Warm', 'Cool', 'Freezing'],
+        correct: 0
+    },
+    {
+        category: 'language',
+        question: 'Complete the sentence: "A bird in the hand is worth..."',
+        type: 'comprehension',
+        options: ['two in the bush', 'one in the tree', 'three on the ground', 'none of these'],
+        correct: 0
+    },
+    {
+        category: 'language',
+        question: 'Which word does not belong: Dog, Cat, Car, Horse?',
+        type: 'categorization',
+        options: ['Car', 'Dog', 'Cat', 'Horse'],
+        correct: 0
+    },
+    {
+        category: 'language',
+        question: 'Name as many animals as you can think of in 30 seconds.',
+        type: 'fluency',
+        options: ['More than 10', '7-10', '4-6', 'Less than 4'],
+        scores: [100, 75, 50, 25]
+    },
+    
+    // Executive Function Questions (4 questions)
+    {
+        category: 'executive',
+        question: 'If you need to mail a letter, what steps would you take?',
+        type: 'planning',
+        options: ['Write letter, put in envelope, add stamp, mail', 'Add stamp, write letter, mail', 'Mail letter, add stamp', 'Put in envelope, mail'],
+        correct: 0
+    },
+    {
+        category: 'executive',
+        question: 'You have $10 and spend $3.50. How much do you have left?',
+        type: 'calculation',
+        options: ['$6.50', '$7.50', '$6.00', '$7.00'],
+        correct: 0
+    },
+    {
+        category: 'executive',
+        question: 'What would you do if you found a wallet on the street?',
+        type: 'judgment',
+        options: ['Try to return it to owner or police', 'Keep it', 'Leave it there', 'Take the money only'],
+        scores: [100, 25, 50, 25]
+    },
+    {
+        category: 'executive',
+        question: 'Draw a clock showing 3:00. How confident are you in drawing it correctly?',
+        type: 'visuospatial',
+        options: ['Very confident', 'Somewhat confident', 'Not very confident', 'Not confident at all'],
+        scores: [100, 75, 50, 25]
+    }
+];
+
+let currentQuestion = 0;
+let answers = {};
+
+function loadQuestion() {
+    const question = cognitiveQuestions[currentQuestion];
+    const progress = ((currentQuestion + 1) / cognitiveQuestions.length) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    
+    let html = `
+        <div class="test-question">
+            <div class="question-number">Question ${currentQuestion + 1} of ${cognitiveQuestions.length}</div>
+            <div class="question-text">${question.question}</div>
+            <div class="options">
+    `;
+    
+    question.options.forEach((option, index) => {
+        const selected = answers[currentQuestion] === index ? 'selected' : '';
+        html += `
+            <div class="option ${selected}" onclick="selectOption(${index})">
+                ${option}
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('testContent').innerHTML = html;
+    
+    // Update button visibility
+    document.getElementById('prevBtn').style.display = currentQuestion > 0 ? 'block' : 'none';
+    document.getElementById('nextBtn').style.display = currentQuestion < cognitiveQuestions.length - 1 ? 'block' : 'none';
+    document.getElementById('submitBtn').style.display = currentQuestion === cognitiveQuestions.length - 1 ? 'block' : 'none';
+}
+
+function selectOption(index) {
+    answers[currentQuestion] = index;
+    loadQuestion();
+}
+
+function nextQuestion() {
+    if (answers[currentQuestion] === undefined) {
+        alert('Please select an answer before proceeding.');
+        return;
+    }
+    currentQuestion++;
+    loadQuestion();
+}
+
+function previousQuestion() {
+    currentQuestion--;
+    loadQuestion();
+}
+
+async function submitTest() {
+    if (answers[currentQuestion] === undefined) {
+        alert('Please answer the current question before submitting.');
+        return;
+    }
+    
+    // Calculate scores by category
+    const scores = {
+        memory: [],
+        attention: [],
+        language: [],
+        executive: []
+    };
+    
+    cognitiveQuestions.forEach((question, index) => {
+        const answer = answers[index];
+        let score = 0;
+        
+        if (question.scores) {
+            score = question.scores[answer];
+        } else if (question.correct !== undefined) {
+            score = answer === question.correct ? 100 : 0;
+        }
+        
+        scores[question.category].push(score);
+    });
+    
+    // Calculate average scores
+    const memoryScore = scores.memory.reduce((a, b) => a + b, 0) / scores.memory.length;
+    const attentionScore = scores.attention.reduce((a, b) => a + b, 0) / scores.attention.length;
+    const languageScore = scores.language.reduce((a, b) => a + b, 0) / scores.language.length;
+    const executiveScore = scores.executive.reduce((a, b) => a + b, 0) / scores.executive.length;
+    
+    // Submit to backend
+    const response = await fetch('/api/submit-cognitive-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            memory_score: memoryScore,
+            attention_score: attentionScore,
+            language_score: languageScore,
+            executive_score: executiveScore
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        displayResults(result, memoryScore, attentionScore, languageScore, executiveScore);
+    }
+}
+
+function displayResults(result, memory, attention, language, executive) {
+    document.getElementById('testContent').classList.add('hidden');
+    document.getElementById('prevBtn').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    document.getElementById('totalScore').textContent = result.total_score.toFixed(1) + '%';
+    document.getElementById('riskScore').textContent = result.risk_score.toFixed(1);
+    document.getElementById('memoryScore').textContent = memory.toFixed(1);
+    document.getElementById('attentionScore').textContent = attention.toFixed(1);
+    document.getElementById('languageScore').textContent = language.toFixed(1);
+    document.getElementById('executiveScore').textContent = executive.toFixed(1);
+    
+    const riskCard = document.getElementById('riskCard');
+    if (result.risk_level === 'Low') {
+        riskCard.classList.add('success');
+    } else if (result.risk_level === 'Medium') {
+        riskCard.classList.add('warning');
+    } else {
+        riskCard.classList.add('danger');
+    }
+}
+
+// Initialize
+loadQuestion();
+</script>
+{% endblock %}

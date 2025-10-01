@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Registration - Dementia Detection System{% endblock %}
+
+{% block extra_css %}
+<style>
+.register-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 0;
+}
+
+.register-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 3rem;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 1rem;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.register-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.register-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+}
+
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.register-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 1rem;
+}
+
+.register-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.login-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.password-strength {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.strength-indicator {
+    height: 4px;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.strength-fill {
+    height: 100%;
+    transition: width 0.3s, background-color 0.3s;
+    border-radius: 2px;
+}
+
+.strength-weak {
+    background: #ef4444;
+    width: 33%;
+}
+
+.strength-medium {
+    background: #f59e0b;
+    width: 66%;
+}
+
+.strength-strong {
+    background: #10b981;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .register-card {
+        padding: 2rem;
+        margin: 0 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <h1 class="register-title">🧠 Patient Registration</h1>
+            <p class="register-subtitle">Join our dementia detection system to monitor your cognitive health</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" id="registerForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="name" class="form-label">Full Name *</label>
+                    <input type="text" id="name" name="name" class="form-input" required 
+                           placeholder="Enter your full name" value="{{ request.form.get('name', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="age" class="form-label">Age *</label>
+                    <input type="number" id="age" name="age" class="form-input" required 
+                           min="18" max="120" placeholder="Enter your age" value="{{ request.form.get('age', '') }}">
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="email" class="form-label">Email Address *</label>
+                    <input type="email" id="email" name="email" class="form-input" required 
+                           placeholder="Enter your email address" value="{{ request.form.get('email', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="gender" class="form-label">Gender *</label>
+                    <select id="gender" name="gender" class="form-select" required>
+                        <option value="">Select Gender</option>
+                        <option value="Male" {{ 'selected' if request.form.get('gender') == 'Male' }}>Male</option>
+                        <option value="Female" {{ 'selected' if request.form.get('gender') == 'Female' }}>Female</option>
+                        <option value="Other" {{ 'selected' if request.form.get('gender') == 'Other' }}>Other</option>
+                        <option value="Prefer not to say" {{ 'selected' if request.form.get('gender') == 'Prefer not to say' }}>Prefer not to say</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password *</label>
+                    <input type="password" id="password" name="password" class="form-input" required 
+                           minlength="6" placeholder="Create a password">
+                    <div class="password-strength">
+                        <div class="strength-indicator">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <span id="strengthText">Password strength will appear here</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Confirm Password *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-input" required 
+                           minlength="6" placeholder="Confirm your password">
+                    <span id="passwordMatch" style="font-size: 0.875rem; margin-top: 0.25rem; display: block;"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="register-btn">
+                Create Account
+            </button>
+        </form>
+
+        <div class="login-link">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const strengthFill = document.getElementById('strengthFill');
+    const strengthText = document.getElementById('strengthText');
+    const passwordMatch = document.getElementById('passwordMatch');
+    const form = document.getElementById('registerForm');
+
+    // Password strength checker
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = checkPasswordStrength(password);
+        
+        strengthFill.className = 'strength-fill';
+        
+        if (password.length === 0) {
+            strengthText.textContent = 'Password strength will appear here';
+            strengthFill.style.width = '0%';
+            return;
+        }
+        
+        if (strength.score < 2) {
+            strengthFill.classList.add('strength-weak');
+            strengthText.textContent = 'Weak password';
+            strengthText.style.color = '#ef4444';
+        } else if (strength.score < 4) {
+            strengthFill.classList.add('strength-medium');
+            strengthText.textContent = 'Medium strength';
+            strengthText.style.color = '#f59e0b';
+        } else {
+            strengthFill.classList.add('strength-strong');
+            strengthText.textContent = 'Strong password';
+            strengthText.style.color = '#10b981';
+        }
+    });
+
+    // Password confirmation checker
+    confirmPasswordInput.addEventListener('input', function() {
+        const password = passwordInput.value;
+        const confirmPassword = this.value;
+        
+        if (confirmPassword.length === 0) {
+            passwordMatch.textContent = '';
+            return;
+        }
+        
+        if (password === confirmPassword) {
+            passwordMatch.textContent = '✅ Passwords match';
+            passwordMatch.style.color = '#10b981';
+        } else {
+            passwordMatch.textContent = '❌ Passwords do not match';
+            passwordMatch.style.color = '#ef4444';
+        }
+    });
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Passwords do not match. Please check and try again.');
+            return false;
+        }
+        
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('Password must be at least 6 characters long.');
+            return false;
+        }
+    });
+
+    function checkPasswordStrength(password) {
+        let score = 0;
+        
+        // Length check
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
+        
+        // Character variety checks
+        if (/[a-z]/.test(password)) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        
+        return { score: score };
+    }
+});
+</script>
+{% endblock %}

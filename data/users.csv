@@ -1,0 +1,4 @@
+email,password,role,name,patient_id,created_at
+doctor@demo.com,doctor123,doctor,Dr. Smith,,2025-10-01T15:20:43.884241
+patient@demo.com,patient123,patient,John Doe,P001,2025-10-01T15:20:43.884241
+piyushaundhekar@gmail.com,drigoon@2512M,patient,hgchfxcg,P002,2025-10-01T15:58:06.445144

@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard - Dementia Detection System{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Doctor Dashboard</h1>
+        <p class="dashboard-subtitle">Monitor patient assessments and track cognitive health</p>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="grid grid-cols-4">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_patients }}</div>
+            <div class="stat-label">Total Patients</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-value">{{ high_risk }}</div>
+            <div class="stat-label">High Risk Patients</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-value">{{ medium_risk }}</div>
+            <div class="stat-label">Medium Risk Patients</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value">{{ low_risk }}</div>
+            <div class="stat-label">Low Risk Patients</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2">
+        <div class="stat-card info">
+            <div class="stat-value">{{ recent_tests }}</div>
+            <div class="stat-label">Tests Today</div>
+        </div>
+        <div class="stat-card secondary">
+            <div class="stat-value">{{ total_tests }}</div>
+            <div class="stat-label">Total Tests</div>
+        </div>
+    </div>
+
+    <!-- Patient List -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Patient Overview</span>
+                <div style="display: flex; gap: 1rem;">
+                    <select id="riskFilter" onchange="filterPatients()" class="form-select" style="width: auto;">
+                        <option value="all">All Risk Levels</option>
+                        <option value="High">High Risk</option>
+                        <option value="Medium">Medium Risk</option>
+                        <option value="Low">Low Risk</option>
+                    </select>
+                    <input type="text" id="searchPatient" onkeyup="searchPatients()" class="form-input" placeholder="Search patients..." style="width: 250px;">
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if patients %}
+            <table class="table" id="patientsTable">
+                <thead>
+                    <tr>
+                        <th>Patient ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>Risk Level</th>
+                        <th>Latest Score</th>
+                        <th>Avg Score</th>
+                        <th>Total Tests</th>
+                        <th>Last Test</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in patients %}
+                    <tr data-risk="{{ patient.risk_level }}">
+                        <td><strong>{{ patient.patient_id }}</strong></td>
+                        <td>{{ patient.name }}</td>
+                        <td>{{ patient.age }}</td>
+                        <td>{{ patient.gender }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if patient.risk_level == 'Low' else 'warning' if patient.risk_level == 'Medium' else 'danger' }}">
+                                {{ patient.risk_level }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if patient.latest_score != 'No tests' and patient.latest_score != 'N/A' %}
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span class="score-badge {{ 'score-excellent' if patient.latest_score|float >= 90 else 'score-good' if patient.latest_score|float >= 75 else 'score-average' if patient.latest_score|float >= 60 else 'score-poor' }}">
+                                        {{ "%.1f"|format(patient.latest_score|float) }}%
+                                    </span>
+                                    <small style="color: var(--text-secondary);">({{ patient.latest_test_type }})</small>
+                                </div>
+                            {% else %}
+                                <span style="color: var(--text-secondary);">{{ patient.latest_score }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if patient.average_score != 'N/A' %}
+                                <span class="score-badge {{ 'score-excellent' if patient.average_score|float >= 90 else 'score-good' if patient.average_score|float >= 75 else 'score-average' if patient.average_score|float >= 60 else 'score-poor' }}">
+                                    {{ "%.1f"|format(patient.average_score|float) }}%
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-secondary);">{{ patient.average_score }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if patient.total_tests >= 5 else 'warning' if patient.total_tests >= 2 else 'secondary' }}">
+                                {{ patient.total_tests }}
+                            </span>
+                        </td>
+                        <td>{{ patient.last_test_date[:10] if patient.last_test_date else 'No tests' }}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('patient_details', patient_id=patient.patient_id) }}" class="btn btn-sm btn-primary">
+                                    👁️ View
+                                </a>
+                                <button onclick="showPatientSummary('{{ patient.patient_id }}')" class="btn btn-sm btn-secondary">
+                                    📊 Summary
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-center" style="color: var(--text-secondary); padding: 2rem;">
+                No patients registered yet.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2">
+        <div class="card">
+            <div class="card-header">Risk Distribution</div>
+            <div class="card-body">
+                <canvas id="riskDistributionChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Patient Age Distribution</div>
+            <div class="card-body">
+                <canvas id="ageDistributionChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function searchPatients() {
+    const input = document.getElementById('searchPatient');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('patientsTable');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    }
+}
+
+function filterPatients() {
+    const select = document.getElementById('riskFilter');
+    const filter = select.value;
+    const table = document.getElementById('patientsTable');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const risk = row.getAttribute('data-risk');
+        
+        if (filter === 'all' || risk === filter) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+// Risk Distribution Pie Chart
+const patients = {{ patients|tojson }};
+
+if (patients && patients.length > 0) {
+    const ctx1 = document.getElementById('riskDistributionChart');
+    
+    const lowCount = patients.filter(p => p.risk_level === 'Low').length;
+    const mediumCount = patients.filter(p => p.risk_level === 'Medium').length;
+    const highCount = patients.filter(p => p.risk_level === 'High').length;
+    
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+            datasets: [{
+                data: [lowCount, mediumCount, highCount],
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(16, 185, 129)',
+                    'rgb(245, 158, 11)',
+                    'rgb(239, 68, 68)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Age Distribution Chart
+    const ctx2 = document.getElementById('ageDistributionChart');
+    
+    const ageGroups = {
+        '50-59': 0,
+        '60-69': 0,
+        '70-79': 0,
+        '80+': 0
+    };
+    
+    patients.forEach(p => {
+        const age = parseInt(p.age);
+        if (age >= 50 && age < 60) ageGroups['50-59']++;
+        else if (age >= 60 && age < 70) ageGroups['60-69']++;
+        else if (age >= 70 && age < 80) ageGroups['70-79']++;
+        else if (age >= 80) ageGroups['80+']++;
+    });
+    
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(ageGroups),
+            datasets: [{
+                label: 'Number of Patients',
+                data: Object.values(ageGroups),
+                backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                borderColor: 'rgb(37, 99, 235)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Patients'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Age Group'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Patient filtering and search functions
+function filterPatients() {
+    const filter = document.getElementById('riskFilter').value;
+    const table = document.getElementById('patientsTable');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const riskLevel = row.getAttribute('data-risk');
+        if (filter === 'all' || riskLevel === filter) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function searchPatients() {
+    const searchTerm = document.getElementById('searchPatient').value.toLowerCase();
+    const table = document.getElementById('patientsTable');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function showPatientSummary(patientId) {
+    // Create and show modal with patient summary
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📊 Patient Summary - ${patientId}</h3>
+                <button onclick="this.closest('.modal').remove()" class="btn btn-sm btn-danger">✕ Close</button>
+            </div>
+            <div class="modal-body">
+                <div class="loading-spinner">Loading patient summary...</div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Simulate loading patient data (in real app, this would be an API call)
+    setTimeout(() => {
+        const patient = patients.find(p => p.patient_id === patientId);
+        if (patient) {
+            const modalBody = modal.querySelector('.modal-body');
+            modalBody.innerHTML = generatePatientSummaryHTML(patient);
+        }
+    }, 500);
+}
+
+function generatePatientSummaryHTML(patient) {
+    return `
+        <div class="patient-summary">
+            <div class="summary-header" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <h4 style="margin: 0; color: var(--text-primary);">${patient.name}</h4>
+                        <p style="margin: 0.5rem 0; color: var(--text-secondary);">ID: ${patient.patient_id}</p>
+                        <p style="margin: 0; color: var(--text-secondary);">${patient.age} years old, ${patient.gender}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="score-badge ${getScoreClass(patient.latest_score)}" style="font-size: 1.1rem; padding: 0.5rem 1rem;">
+                            Latest: ${patient.latest_score !== 'No tests' ? patient.latest_score + '%' : 'No tests'}
+                        </div>
+                        <p style="margin: 0.5rem 0; color: var(--text-secondary);">Risk Level: 
+                            <span class="badge badge-${patient.risk_level === 'Low' ? 'success' : patient.risk_level === 'Medium' ? 'warning' : 'danger'}">
+                                ${patient.risk_level}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="summary-card" style="background: #f8fafc; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                    <h5 style="margin: 0 0 1rem 0; color: var(--primary-color);">📈 Test Statistics</h5>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Total Tests:</span>
+                        <strong>${patient.total_tests}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Average Score:</span>
+                        <strong>${patient.average_score !== 'N/A' ? patient.average_score + '%' : 'N/A'}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Latest Test Type:</span>
+                        <strong>${patient.latest_test_type}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Last Test Date:</span>
+                        <strong>${patient.last_test_date ? patient.last_test_date.substring(0, 10) : 'No tests'}</strong>
+                    </div>
+                </div>
+                
+                <div class="summary-card" style="background: #f8fafc; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                    <h5 style="margin: 0 0 1rem 0; color: var(--primary-color);">🎯 Performance Trend</h5>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Baseline Score:</span>
+                        <strong>${patient.baseline_score}%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Latest Score:</span>
+                        <strong>${patient.latest_score !== 'No tests' ? patient.latest_score + '%' : 'No tests'}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Change:</span>
+                        <strong style="color: ${patient.latest_score !== 'No tests' ? (parseFloat(patient.latest_score) >= parseFloat(patient.baseline_score) ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--text-secondary)'}">
+                            ${patient.latest_score !== 'No tests' ? (parseFloat(patient.latest_score) - parseFloat(patient.baseline_score) > 0 ? '+' : '') + (parseFloat(patient.latest_score) - parseFloat(patient.baseline_score)).toFixed(1) + '%' : 'N/A'}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <a href="/doctor/patient/${patient.patient_id}" class="btn btn-primary" style="margin-right: 1rem;">
+                    📋 View Full Details
+                </a>
+                <button onclick="this.closest('.modal').remove()" class="btn btn-secondary">
+                    Close Summary
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function getScoreClass(score) {
+    if (score === 'No tests' || score === 'N/A') return 'score-poor';
+    const numScore = parseFloat(score);
+    if (numScore >= 90) return 'score-excellent';
+    if (numScore >= 75) return 'score-good';
+    if (numScore >= 60) return 'score-average';
+    return 'score-poor';
+}
+
+// Add modal styles if not already present
+if (!document.querySelector('#modal-styles')) {
+    const modalStyles = document.createElement('style');
+    modalStyles.id = 'modal-styles';
+    modalStyles.textContent = `
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        }
+        .modal-body {
+            padding: 2rem;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+    `;
+    document.head.appendChild(modalStyles);
+}
+</script>
+{% endblock %}

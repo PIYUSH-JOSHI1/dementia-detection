@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Details - {{ patient.name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 class="dashboard-title">{{ patient.name }}</h1>
+                <p class="dashboard-subtitle">Patient ID: {{ patient.patient_id }}</p>
+            </div>
+            <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+     Patient Information 
+    <div class="card">
+        <div class="card-header">Patient Information</div>
+        <div class="card-body">
+            <div class="grid grid-cols-3">
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Age</p>
+                    <p style="font-size: 1.25rem; font-weight: 600;">{{ patient.age }} years</p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Gender</p>
+                    <p style="font-size: 1.25rem; font-weight: 600;">{{ patient.gender }}</p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Email</p>
+                    <p style="font-size: 1.25rem; font-weight: 600;">{{ patient.email }}</p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Baseline Score</p>
+                    <p style="font-size: 1.25rem; font-weight: 600;">{{ patient.baseline_score }}</p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Current Risk Level</p>
+                    <p>
+                        <span class="badge badge-{{ 'success' if patient.risk_level == 'Low' else 'warning' if patient.risk_level == 'Medium' else 'danger' }}" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                            {{ patient.risk_level }}
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Last Assessment</p>
+                    <p style="font-size: 1.25rem; font-weight: 600;">
+                        {{ patient.last_test_date[:10] if patient.last_test_date else 'No tests' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     Test Results Overview 
+    <div class="grid grid-cols-4">
+        {% set cognitive_count = test_results|selectattr('test_type', 'equalto', 'Cognitive')|list|length %}
+        {% set memory_count = test_results|selectattr('test_type', 'equalto', 'Memory')|list|length %}
+        {% set speech_count = test_results|selectattr('test_type', 'equalto', 'Speech')|list|length %}
+        {% set fluency_count = test_results|selectattr('test_type', 'equalto', 'Verbal Fluency')|list|length %}
+        
+        <div class="stat-card">
+            <div class="stat-value">{{ cognitive_count }}</div>
+            <div class="stat-label">Cognitive Tests</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value">{{ memory_count }}</div>
+            <div class="stat-label">Memory Tests</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-value">{{ speech_count }}</div>
+            <div class="stat-label">Speech Analyses</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <div class="stat-value">{{ fluency_count }}</div>
+            <div class="stat-label">Fluency Tests</div>
+        </div>
+    </div>
+
+     Cognitive Test Results 
+    {% if cognitive_tests %}
+    <div class="card">
+        <div class="card-header">Cognitive Assessment History</div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Memory</th>
+                        <th>Attention</th>
+                        <th>Language</th>
+                        <th>Executive</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for test in cognitive_tests|reverse %}
+                    <tr>
+                        <td>{{ test.timestamp[:10] }}</td>
+                        <td>{{ "%.1f"|format(test.memory_score|float) }}%</td>
+                        <td>{{ "%.1f"|format(test.attention_score|float) }}%</td>
+                        <td>{{ "%.1f"|format(test.language_score|float) }}%</td>
+                        <td>{{ "%.1f"|format(test.executive_score|float) }}%</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if test.total_score|float >= 70 else 'warning' if test.total_score|float >= 50 else 'danger' }}">
+                                {{ "%.1f"|format(test.total_score|float) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+     Speech Analysis Results 
+    {% if speech_analyses %}
+    <div class="card">
+        <div class="card-header">Speech Analysis History</div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Fluency</th>
+                        <th>Coherence</th>
+                        <th>Vocabulary</th>
+                        <th>Pause Pattern</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in speech_analyses|reverse %}
+                    <tr>
+                        <td>{{ analysis.timestamp[:10] }}</td>
+                        <td>{{ analysis.fluency_score }}</td>
+                        <td>{{ analysis.coherence_score }}</td>
+                        <td>{{ analysis.vocabulary_score }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if analysis.pause_analysis == 'Normal' else 'warning' if analysis.pause_analysis == 'Moderate' else 'danger' }}">
+                                {{ analysis.pause_analysis }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if analysis.total_score|float >= 70 else 'warning' if analysis.total_score|float >= 50 else 'danger' }}">
+                                {{ "%.1f"|format(analysis.total_score|float) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+     All Test Results 
+    <div class="card">
+        <div class="card-header">Complete Test History</div>
+        <div class="card-body">
+            {% if test_results %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Test ID</th>
+                        <th>Test Type</th>
+                        <th>Date</th>
+                        <th>Score</th>
+                        <th>Risk Score</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for test in test_results|reverse %}
+                    <tr>
+                        <td><code>{{ test.test_id }}</code></td>
+                        <td>
+                            <span class="badge badge-info">{{ test.test_type }}</span>
+                        </td>
+                        <td>{{ test.timestamp[:16] if test.timestamp else 'N/A' }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if test.score|float >= 70 else 'warning' if test.score|float >= 50 else 'danger' }}">
+                                {{ "%.1f"|format(test.score|float) }}%
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if test.risk_score|float < 30 else 'warning' if test.risk_score|float < 60 else 'danger' }}">
+                                {{ "%.1f"|format(test.risk_score|float) }}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="showTestDetails('{{ test.details|replace("'", "\\'") }}')" class="btn btn-sm btn-primary">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-center" style="color: var(--text-secondary); padding: 2rem;">
+                No test results available for this patient.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+     Clinical Recommendations 
+    <div class="card">
+        <div class="card-header">Clinical Recommendations</div>
+        <div class="card-body">
+            {% if patient.risk_level == 'High' %}
+            <div class="alert alert-error">
+                <strong>High Risk Alert:</strong> This patient shows significant cognitive decline indicators. 
+                Immediate clinical evaluation and comprehensive neurological assessment recommended.
+                Consider referral to specialist and discuss treatment options.
+            </div>
+            {% elif patient.risk_level == 'Medium' %}
+            <div class="alert alert-warning">
+                <strong>Medium Risk:</strong> Patient shows some cognitive variations that warrant monitoring. 
+                Schedule follow-up assessments every 3-6 months. Consider lifestyle interventions and 
+                cognitive training exercises.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <strong>Low Risk:</strong> Patient's cognitive performance is within normal range. 
+                Continue regular monitoring with annual assessments. Encourage healthy lifestyle 
+                and cognitive engagement activities.
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 1.5rem; padding: 1.5rem; background: var(--bg-color); border-radius: 0.5rem;">
+                <h4 style="margin-bottom: 1rem;">Suggested Actions:</h4>
+                <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                    {% if patient.risk_level == 'High' %}
+                    <li>Schedule comprehensive neurological evaluation</li>
+                    <li>Conduct brain imaging (MRI/CT scan)</li>
+                    <li>Review medication history and potential interactions</li>
+                    <li>Assess for depression and other comorbidities</li>
+                    <li>Discuss care planning with family members</li>
+                    {% elif patient.risk_level == 'Medium' %}
+                    <li>Increase assessment frequency to quarterly</li>
+                    <li>Recommend cognitive training programs</li>
+                    <li>Evaluate cardiovascular risk factors</li>
+                    <li>Encourage physical exercise and social engagement</li>
+                    <li>Monitor for progression over next 6 months</li>
+                    {% else %}
+                    <li>Continue annual cognitive screening</li>
+                    <li>Promote brain-healthy lifestyle habits</li>
+                    <li>Encourage regular physical and mental exercise</li>
+                    <li>Maintain social connections and activities</li>
+                    <li>Monitor for any changes in cognitive function</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+     Performance Trends Chart 
+    {% if test_results %}
+    <div class="card">
+        <div class="card-header">Performance Trends Over Time</div>
+        <div class="card-body">
+            <canvas id="performanceChart" style="max-height: 400px;"></canvas>
+        </div>
+    </div>
+
+     Risk Score Progression 
+    <div class="card">
+        <div class="card-header">Risk Score Progression</div>
+        <div class="card-body">
+            <canvas id="riskChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+
+     Cognitive Domain Comparison 
+    {% if cognitive_tests %}
+    <div class="card">
+        <div class="card-header">Latest Cognitive Domain Analysis</div>
+        <div class="card-body">
+            <div class="grid grid-cols-2">
+                <canvas id="cognitiveRadarChart" style="max-height: 400px;"></canvas>
+                <canvas id="cognitiveDomainChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+ Details Modal 
+<div id="detailsModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Test Details</h3>
+            <button onclick="closeDetailsModal()" class="btn btn-sm btn-danger">Close</button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-body {
+    color: var(--text-secondary);
+}
+
+code {
+    background: var(--bg-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+</style>
+
+<script>
+function showTestDetails(detailsJson) {
+    try {
+        const details = JSON.parse(detailsJson);
+        let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+        
+        for (const [key, value] of Object.entries(details)) {
+            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            html += `
+                <div style="padding: 1rem; background: var(--bg-color); border-radius: 0.5rem;">
+                    <strong>${displayKey}:</strong>
+                    <p style="margin-top: 0.5rem; color: var(--text-primary);">${JSON.stringify(value)}</p>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        document.getElementById('modalBody').innerHTML = html;
+        document.getElementById('detailsModal').classList.remove('hidden');
+    } catch (e) {
+        console.error('Error parsing details:', e);
+        alert('Unable to display test details');
+    }
+}
+
+function closeDetailsModal() {
+    document.getElementById('detailsModal').classList.add('hidden');
+}
+
+// Close modal on outside click
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('detailsModal');
+    if (event.target === modal) {
+        closeDetailsModal();
+    }
+});
+
+// Prepare data for charts
+const testResults = {{ test_results|tojson }};
+const cognitiveTests = {{ cognitive_tests|tojson }};
+
+// Performance Trends Chart
+if (testResults && testResults.length > 0) {
+    const ctx1 = document.getElementById('performanceChart');
+    
+    // Sort by timestamp
+    const sortedResults = testResults.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    const dates = sortedResults.map(t => t.timestamp ? t.timestamp.substring(0, 10) : 'N/A');
+    const scores = sortedResults.map(t => parseFloat(t.score) || 0);
+    const testTypes = sortedResults.map(t => t.test_type);
+    
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Test Scores',
+                data: scores,
+                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            return testTypes[index] + ' - ' + dates[index];
+                        },
+                        label: function(context) {
+                            return 'Score: ' + context.parsed.y.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+
+    // Risk Score Chart
+    const ctx2 = document.getElementById('riskChart');
+    const riskScores = sortedResults.map(t => parseFloat(t.risk_score) || 0);
+    
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Risk Score',
+                data: riskScores,
+                backgroundColor: riskScores.map(score => {
+                    if (score < 30) return 'rgba(16, 185, 129, 0.7)';
+                    if (score < 60) return 'rgba(245, 158, 11, 0.7)';
+                    return 'rgba(239, 68, 68, 0.7)';
+                }),
+                borderColor: riskScores.map(score => {
+                    if (score < 30) return 'rgb(16, 185, 129)';
+                    if (score < 60) return 'rgb(245, 158, 11)';
+                    return 'rgb(239, 68, 68)';
+                }),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const score = context.parsed.y;
+                            let level = 'Low Risk';
+                            if (score >= 60) level = 'High Risk';
+                            else if (score >= 30) level = 'Medium Risk';
+                            return 'Risk Score: ' + score.toFixed(1) + ' (' + level + ')';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Risk Score'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Cognitive Domain Charts
+if (cognitiveTests && cognitiveTests.length > 0) {
+    const latestTest = cognitiveTests[cognitiveTests.length - 1];
+    
+    // Radar Chart
+    const ctx3 = document.getElementById('cognitiveRadarChart');
+    new Chart(ctx3, {
+        type: 'radar',
+        data: {
+            labels: ['Memory', 'Attention', 'Language', 'Executive Function'],
+            datasets: [{
+                label: 'Latest Assessment',
+                data: [
+                    parseFloat(latestTest.memory_score) || 0,
+                    parseFloat(latestTest.attention_score) || 0,
+                    parseFloat(latestTest.language_score) || 0,
+                    parseFloat(latestTest.executive_score) || 0
+                ],
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: 'rgb(37, 99, 235)',
+                pointBackgroundColor: 'rgb(37, 99, 235)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(37, 99, 235)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Domain Bar Chart
+    const ctx4 = document.getElementById('cognitiveDomainChart');
+    new Chart(ctx4, {
+        type: 'bar',
+        data: {
+            labels: ['Memory', 'Attention', 'Language', 'Executive'],
+            datasets: [{
+                label: 'Domain Scores',
+                data: [
+                    parseFloat(latestTest.memory_score) || 0,
+                    parseFloat(latestTest.attention_score) || 0,
+                    parseFloat(latestTest.language_score) || 0,
+                    parseFloat(latestTest.executive_score) || 0
+                ],
+                backgroundColor: [
+                    'rgba(37, 99, 235, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(139, 92, 246, 0.7)'
+                ],
+                borderColor: [
+                    'rgb(37, 99, 235)',
+                    'rgb(16, 185, 129)',
+                    'rgb(245, 158, 11)',
+                    'rgb(139, 92, 246)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score (%)'
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

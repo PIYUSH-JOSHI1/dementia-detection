@@ -1,0 +1,845 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Dashboard - Dementia Detection System{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Welcome, {{ session.name }}</h1>
+        <p class="dashboard-subtitle">Track your cognitive health and complete assessments</p>
+    </div>
+
+     Patient Info Card 
+    <div class="card">
+        <div class="card-header">Your Profile</div>
+        <div class="card-body">
+            <div class="grid grid-cols-2">
+                <div>
+                    <p><strong>Patient ID:</strong> {{ patient.patient_id }}</p>
+                    <p><strong>Age:</strong> {{ patient.age }} years</p>
+                    <p><strong>Gender:</strong> {{ patient.gender }}</p>
+                </div>
+                <div>
+                    <p><strong>Baseline Score:</strong> {{ patient.baseline_score }}</p>
+                    <p><strong>Current Risk Level:</strong> 
+                        <span class="badge badge-{{ patient.risk_level|lower if patient.risk_level == 'Low' else 'warning' if patient.risk_level == 'Medium' else 'danger' }}">
+                            {{ patient.risk_level }}
+                        </span>
+                    </p>
+                    <p><strong>Last Test:</strong> {{ patient.last_test_date if patient.last_test_date else 'No tests yet' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     Assessment Options 
+    <div class="card">
+        <div class="card-header">Available Assessments</div>
+        <div class="card-body">
+            <div class="grid grid-cols-2">
+                <div class="card" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Cognitive Assessment</h3>
+                    <p style="margin-bottom: 1.5rem; opacity: 0.9;">Comprehensive test covering memory, attention, language, and executive function</p>
+                    <a href="{{ url_for('cognitive_test') }}" class="btn btn-outline" style="border-color: white; color: white;">Start Test</a>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Memory Test</h3>
+                    <p style="margin-bottom: 1.5rem; opacity: 0.9;">Specialized assessment for short-term and long-term memory recall</p>
+                    <a href="{{ url_for('memory_test') }}" class="btn btn-outline" style="border-color: white; color: white;">Start Test</a>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Speech Analysis</h3>
+                    <p style="margin-bottom: 1.5rem; opacity: 0.9;">AI-powered analysis of speech patterns, fluency, and coherence</p>
+                    <a href="{{ url_for('speech_analysis') }}" class="btn btn-outline" style="border-color: white; color: white;">Start Test</a>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Verbal Fluency</h3>
+                    <p style="margin-bottom: 1.5rem; opacity: 0.9;">Timed word generation and language fluency assessment</p>
+                    <a href="{{ url_for('verbal_fluency') }}" class="btn btn-outline" style="border-color: white; color: white;">Start Test</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     Recent Test Results 
+    <div class="card">
+        <div class="card-header">Recent Test Results</div>
+        <div class="card-body">
+            {% if tests %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Test Type</th>
+                        <th>Score</th>
+                        <th>Risk Score</th>
+                        <th>Date</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for test in tests[-5:] %}
+                    <tr>
+                        <td>{{ test.test_type }}</td>
+                        <td>{{ "%.1f"|format(test.score|float) }}%</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if test.risk_score|float < 30 else 'warning' if test.risk_score|float < 60 else 'danger' }}">
+                                {{ "%.1f"|format(test.risk_score|float) }}
+                            </span>
+                        </td>
+                        <td>{{ test.timestamp[:10] if test.timestamp else 'N/A' }}</td>
+                        <td>
+                            <button onclick="showDetails('{{ test.details }}')" class="btn btn-sm btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span>👁️</span>
+                                <span>View Details</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-center" style="color: var(--text-secondary); padding: 2rem;">
+                No test results yet. Start your first assessment above!
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+     Added progress tracking chart for patient 
+    {% if tests %}
+    <div class="card">
+        <div class="card-header">Your Progress Over Time</div>
+        <div class="card-body">
+            <canvas id="progressChart" style="max-height: 350px;"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2">
+        <div class="card">
+            <div class="card-header">Test Type Distribution</div>
+            <div class="card-body">
+                <canvas id="testTypeChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Risk Score Trend</div>
+            <div class="card-body">
+                <canvas id="riskTrendChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+ Details Modal 
+<!-- Enhanced Details Modal -->
+<div id="detailsModal" class="modal hidden" onclick="closeModalOnOutsideClick(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Test Details</h3>
+            <div class="modal-actions">
+                <button onclick="downloadTestDetails()" class="btn btn-sm btn-primary" id="downloadBtn" style="margin-right: 0.5rem;">
+                    📄 Download
+                </button>
+                <button onclick="closeModal()" class="btn btn-sm btn-danger">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+        <div id="modalBody" class="modal-body">
+            <div class="loading-spinner" id="loadingSpinner">Loading...</div>
+        </div>
+        <div class="modal-footer">
+            <small class="text-muted" id="modalFooter">Click outside to close</small>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1rem;
+    padding: 0;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-actions {
+    display: flex;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 2rem;
+    color: var(--text-secondary);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 2rem;
+    border-top: 1px solid var(--border-color);
+    background: #f8fafc;
+    text-align: center;
+}
+
+.test-detail-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.test-detail-section {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.test-detail-section h4 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.detail-value {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.score-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.score-excellent {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.score-good {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.score-average {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.score-poor {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+</style>
+
+<script>
+let currentTestDetails = null;
+
+function showDetails(detailsJson) {
+    try {
+        const details = JSON.parse(detailsJson);
+        currentTestDetails = details;
+        
+        // Show loading spinner
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('detailsModal').classList.remove('hidden');
+        
+        // Simulate loading delay for better UX
+        setTimeout(() => {
+            renderTestDetails(details);
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }, 300);
+        
+    } catch (e) {
+        console.error('Error parsing details:', e);
+        showErrorModal('Unable to load test details. Please try again.');
+    }
+}
+
+function renderTestDetails(details) {
+    let html = '<div class="test-detail-grid">';
+    
+    // Determine test type and render accordingly
+    if (details.memory !== undefined) {
+        // Cognitive Assessment
+        html += renderCognitiveDetails(details);
+    } else if (details.correct_recalls !== undefined) {
+        // Memory Test
+        html += renderMemoryDetails(details);
+    } else if (details.fluency_score !== undefined) {
+        // Speech Analysis
+        html += renderSpeechDetails(details);
+    } else {
+        // Generic details
+        html += renderGenericDetails(details);
+    }
+    
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalTitle').textContent = getTestTypeTitle(details);
+}
+
+function renderCognitiveDetails(details) {
+    const scores = [
+        { label: 'Memory', value: details.memory, max: 100 },
+        { label: 'Attention', value: details.attention, max: 100 },
+        { label: 'Language', value: details.language, max: 100 },
+        { label: 'Executive Function', value: details.executive, max: 100 }
+    ];
+    
+    let html = '<div class="test-detail-section">';
+    html += '<h4>🧠 Cognitive Assessment Breakdown</h4>';
+    
+    scores.forEach(score => {
+        const percentage = (score.value / score.max) * 100;
+        const scoreClass = getScoreClass(percentage);
+        
+        html += `
+            <div class="detail-item">
+                <div class="detail-label">${score.label}</div>
+                <div style="flex: 1; margin: 0 1rem;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+                <div class="detail-value">
+                    <span class="score-badge ${scoreClass}">${score.value}/100</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    const totalScore = (details.memory + details.attention + details.language + details.executive) / 4;
+    html += `
+        <div class="detail-item" style="border-top: 2px solid var(--primary-color); margin-top: 1rem; padding-top: 1rem;">
+            <div class="detail-label"><strong>Overall Score</strong></div>
+            <div class="detail-value">
+                <span class="score-badge ${getScoreClass(totalScore)}">${totalScore.toFixed(1)}/100</span>
+            </div>
+        </div>
+    `;
+    
+    html += '</div>';
+    
+    // Add recommendations
+    html += generateRecommendations(totalScore, scores);
+    
+    return html;
+}
+
+function renderMemoryDetails(details) {
+    let html = '<div class="test-detail-section">';
+    html += '<h4>🎯 Memory Test Results</h4>';
+    
+    const recallRate = details.recall_rate || 0;
+    
+    html += `
+        <div class="detail-item">
+            <div class="detail-label">Words Recalled Correctly</div>
+            <div class="detail-value">${details.correct_recalls}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">False Recalls</div>
+            <div class="detail-value">${details.false_recalls}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Total Words</div>
+            <div class="detail-value">${details.total_words}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Recall Rate</div>
+            <div style="flex: 1; margin: 0 1rem;">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${recallRate}%"></div>
+                </div>
+            </div>
+            <div class="detail-value">
+                <span class="score-badge ${getScoreClass(recallRate)}">${recallRate.toFixed(1)}%</span>
+            </div>
+        </div>
+    `;
+    
+    html += '</div>';
+    
+    // Add memory-specific insights
+    html += generateMemoryInsights(details);
+    
+    return html;
+}
+
+function renderSpeechDetails(details) {
+    let html = '<div class="test-detail-section">';
+    html += '<h4>🗣️ Speech Analysis Results</h4>';
+    
+    const metrics = [
+        { label: 'Fluency Score', value: details.fluency_score, icon: '🎯' },
+        { label: 'Coherence Score', value: details.coherence_score, icon: '🔗' },
+        { label: 'Vocabulary Score', value: details.vocabulary_score, icon: '📚' }
+    ];
+    
+    metrics.forEach(metric => {
+        html += `
+            <div class="detail-item">
+                <div class="detail-label">${metric.icon} ${metric.label}</div>
+                <div style="flex: 1; margin: 0 1rem;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${metric.value}%"></div>
+                    </div>
+                </div>
+                <div class="detail-value">
+                    <span class="score-badge ${getScoreClass(metric.value)}">${metric.value}/100</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    if (details.pause_analysis) {
+        html += `
+            <div class="detail-item">
+                <div class="detail-label">🔍 Pause Analysis</div>
+                <div class="detail-value">${details.pause_analysis}</div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function renderGenericDetails(details) {
+    let html = '<div class="test-detail-section">';
+    html += '<h4>📊 Test Details</h4>';
+    
+    for (const [key, value] of Object.entries(details)) {
+        const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        html += `
+            <div class="detail-item">
+                <div class="detail-label">${formattedKey}</div>
+                <div class="detail-value">${value}</div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function generateRecommendations(totalScore, scores) {
+    let html = '<div class="test-detail-section">';
+    html += '<h4>💡 Recommendations</h4>';
+    
+    if (totalScore >= 80) {
+        html += '<p style="color: var(--success-color); font-weight: 500;">Excellent performance! Continue with regular monitoring.</p>';
+    } else if (totalScore >= 60) {
+        html += '<p style="color: var(--warning-color); font-weight: 500;">Good performance. Consider focusing on areas with lower scores.</p>';
+    } else {
+        html += '<p style="color: var(--danger-color); font-weight: 500;">Consider consultation with healthcare provider for detailed assessment.</p>';
+    }
+    
+    // Find lowest scoring area
+    const lowestScore = scores.reduce((min, score) => score.value < min.value ? score : min, scores[0]);
+    if (lowestScore.value < 70) {
+        html += `<p><strong>Focus Area:</strong> ${lowestScore.label} - Consider targeted exercises for improvement.</p>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function generateMemoryInsights(details) {
+    let html = '<div class="test-detail-section">';
+    html += '<h4>🔍 Insights</h4>';
+    
+    const accuracy = (details.correct_recalls / details.total_words) * 100;
+    
+    if (accuracy >= 80) {
+        html += '<p style="color: var(--success-color);">Excellent memory performance! Your recall ability is very strong.</p>';
+    } else if (accuracy >= 60) {
+        html += '<p style="color: var(--warning-color);">Good memory performance with room for improvement. Practice memory exercises regularly.</p>';
+    } else {
+        html += '<p style="color: var(--danger-color);">Memory performance below average. Consider discussing with healthcare provider.</p>';
+    }
+    
+    if (details.false_recalls > 2) {
+        html += '<p><strong>Note:</strong> Higher false recalls detected. This may indicate attention or confidence issues.</p>';
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function getTestTypeTitle(details) {
+    if (details.memory !== undefined) return '🧠 Cognitive Assessment Details';
+    if (details.correct_recalls !== undefined) return '🎯 Memory Test Details';
+    if (details.fluency_score !== undefined) return '🗣️ Speech Analysis Details';
+    return '📊 Test Details';
+}
+
+function getScoreClass(score) {
+    if (score >= 90) return 'score-excellent';
+    if (score >= 75) return 'score-good';
+    if (score >= 60) return 'score-average';
+    return 'score-poor';
+}
+
+function closeModal() {
+    const modal = document.getElementById('detailsModal');
+    modal.style.animation = 'modalFadeOut 0.3s ease-in';
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.animation = '';
+    }, 300);
+}
+
+function closeModalOnOutsideClick(event) {
+    if (event.target === event.currentTarget) {
+        closeModal();
+    }
+}
+
+function downloadTestDetails() {
+    if (!currentTestDetails) {
+        showErrorModal('No test details available for download.');
+        return;
+    }
+    
+    const testType = getTestTypeTitle(currentTestDetails).replace(/[🧠🎯🗣️📊]/g, '').trim();
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `${testType.replace(/\s+/g, '_')}_${timestamp}.json`;
+    
+    const dataStr = JSON.stringify(currentTestDetails, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = filename;
+    link.click();
+    
+    // Show success message
+    showSuccessMessage('Test details downloaded successfully!');
+}
+
+function showErrorModal(message) {
+    document.getElementById('modalBody').innerHTML = `
+        <div class="test-detail-section" style="text-align: center; color: var(--danger-color);">
+            <h4>❌ Error</h4>
+            <p>${message}</p>
+        </div>
+    `;
+    document.getElementById('modalTitle').textContent = 'Error';
+    document.getElementById('detailsModal').classList.remove('hidden');
+}
+
+function showSuccessMessage(message) {
+    // Create a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.className = 'alert alert-success';
+    successDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1001;
+        background: var(--success-color);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: var(--shadow-lg);
+        animation: slideInRight 0.3s ease-out;
+    `;
+    successDiv.textContent = message;
+    
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+        successDiv.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => successDiv.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS animations for success message
+const style = document.createElement('style');
+style.textContent = `
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes modalFadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.9); }
+}
+`;
+document.head.appendChild(style);
+
+// Enhanced keyboard navigation
+document.addEventListener('keydown', function(event) {
+    const modal = document.getElementById('detailsModal');
+    if (!modal.classList.contains('hidden')) {
+        if (event.key === 'Escape') {
+            closeModal();
+        } else if (event.key === 'd' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            downloadTestDetails();
+        }
+    }
+});
+
+// Patient Progress Chart
+const tests = {{ tests|tojson }};
+
+if (tests && tests.length > 0) {
+    // Sort by timestamp
+    const sortedTests = tests.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    // Progress Line Chart
+    const ctx1 = document.getElementById('progressChart');
+    const dates = sortedTests.map(t => t.timestamp ? t.timestamp.substring(0, 10) : 'N/A');
+    const scores = sortedTests.map(t => parseFloat(t.score) || 0);
+    
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Your Test Scores',
+                data: scores,
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+
+    // Test Type Distribution
+    const ctx2 = document.getElementById('testTypeChart');
+    const testTypes = {};
+    sortedTests.forEach(t => {
+        testTypes[t.test_type] = (testTypes[t.test_type] || 0) + 1;
+    });
+    
+    new Chart(ctx2, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(testTypes),
+            datasets: [{
+                data: Object.values(testTypes),
+                backgroundColor: [
+                    'rgba(37, 99, 235, 0.8)',
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(139, 92, 246, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(37, 99, 235)',
+                    'rgb(16, 185, 129)',
+                    'rgb(245, 158, 11)',
+                    'rgb(139, 92, 246)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Risk Trend Chart
+    const ctx3 = document.getElementById('riskTrendChart');
+    const riskScores = sortedTests.map(t => parseFloat(t.risk_score) || 0);
+    
+    new Chart(ctx3, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Risk Score',
+                data: riskScores,
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Risk Score'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

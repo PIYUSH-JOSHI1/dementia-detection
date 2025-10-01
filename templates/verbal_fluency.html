@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Verbal Fluency Test - Dementia Detection System{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="test-header">
+        <h1 class="test-title">Verbal Fluency Assessment</h1>
+        <p class="test-description">Timed word generation test to assess language and executive function</p>
+    </div>
+
+    <div id="instructionsSection" class="card">
+        <div class="card-header">Test Instructions</div>
+        <div class="card-body">
+            <p style="margin-bottom: 1rem;">This test measures your ability to generate words quickly:</p>
+            <ul style="margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.8;">
+                <li>You will be given a category or letter</li>
+                <li>You have 60 seconds to name as many words as possible</li>
+                <li>Type each word and press Enter or click Add</li>
+                <li>Words must be valid and fit the category</li>
+            </ul>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                This test evaluates language retrieval, processing speed, and executive function.
+            </p>
+            <button onclick="startFluencyTest()" class="btn btn-primary btn-lg">Start Fluency Test</button>
+        </div>
+    </div>
+
+    <div id="testSection" class="card hidden">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="categoryDisplay"></span>
+                <span style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="timer">60</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <input 
+                    type="text" 
+                    id="wordInput" 
+                    class="form-input" 
+                    placeholder="Type a word and press Enter"
+                    onkeypress="handleKeyPress(event)"
+                    style="font-size: 1.25rem;"
+                >
+            </div>
+            <button onclick="addWord()" class="btn btn-primary btn-lg w-full">Add Word</button>
+            
+            <div style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">Words Added: <span id="wordCount">0</span></h3>
+                <div id="wordList" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 100px; padding: 1rem; background: var(--bg-color); border-radius: 0.5rem;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultsSection" class="hidden">
+        <div class="card">
+            <div class="card-header">Verbal Fluency Results</div>
+            <div class="card-body">
+                <div class="grid grid-cols-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalWords">0</div>
+                        <div class="stat-label">Total Words</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="validWords">0</div>
+                        <div class="stat-label">Valid Words</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="fluencyScore">0</div>
+                        <div class="stat-label">Fluency Score</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 style="margin-bottom: 1rem;">Performance Analysis</h3>
+                    <div id="performanceDetails"></div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="nextCategory()" id="nextCategoryBtn" class="btn btn-primary btn-lg">Next Category</button>
+                    <button onclick="finishTest()" id="finishBtn" class="btn btn-success btn-lg" style="display: none;">Finish Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="finalResultsSection" class="hidden">
+        <div class="card">
+            <div class="card-header">Final Verbal Fluency Assessment</div>
+            <div class="card-body">
+                <div class="grid grid-cols-2">
+                    <div class="stat-card">
+                        <div class="stat-value" id="finalTotalWords">0</div>
+                        <div class="stat-label">Total Words Generated</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="finalScore">0</div>
+                        <div class="stat-label">Overall Fluency Score</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 style="margin-bottom: 1rem;">Category Breakdown</h3>
+                    <div id="categoryBreakdown"></div>
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const categories = [
+    { name: 'Animals', description: 'Name as many animals as you can' },
+    { name: 'Foods', description: 'Name as many foods as you can' },
+    { name: 'Words starting with F', description: 'Name words that start with the letter F' }
+];
+
+let currentCategory = 0;
+let words = [];
+let timerInterval;
+let categoryResults = [];
+
+function startFluencyTest() {
+    document.getElementById('instructionsSection').classList.add('hidden');
+    document.getElementById('testSection').classList.remove('hidden');
+    loadCategory();
+}
+
+function loadCategory() {
+    words = [];
+    const category = categories[currentCategory];
+    document.getElementById('categoryDisplay').textContent = category.description;
+    document.getElementById('wordInput').value = '';
+    document.getElementById('wordInput').disabled = false;
+    document.getElementById('wordList').innerHTML = '';
+    document.getElementById('wordCount').textContent = '0';
+    
+    // Start timer
+    let timeLeft = 60;
+    document.getElementById('timer').textContent = timeLeft;
+    
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            endCategory();
+        }
+    }, 1000);
+    
+    document.getElementById('wordInput').focus();
+}
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        addWord();
+    }
+}
+
+function addWord() {
+    const input = document.getElementById('wordInput');
+    const word = input.value.trim().toLowerCase();
+    
+    if (word && !words.includes(word)) {
+        words.push(word);
+        
+        const wordBadge = document.createElement('span');
+        wordBadge.className = 'badge badge-info';
+        wordBadge.textContent = word;
+        wordBadge.style.fontSize = '1rem';
+        wordBadge.style.padding = '0.5rem 1rem';
+        
+        document.getElementById('wordList').appendChild(wordBadge);
+        document.getElementById('wordCount').textContent = words.length;
+        
+        input.value = '';
+        input.focus();
+    }
+}
+
+function endCategory() {
+    clearInterval(timerInterval);
+    document.getElementById('wordInput').disabled = true;
+    
+    // Calculate score for this category
+    const score = Math.min(100, (words.length / 15) * 100);
+    categoryResults.push({
+        category: categories[currentCategory].name,
+        words: words.length,
+        score: Math.round(score)
+    });
+    
+    showCategoryResults(words.length, score);
+}
+
+function showCategoryResults(wordCount, score) {
+    document.getElementById('testSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    document.getElementById('totalWords').textContent = wordCount;
+    document.getElementById('validWords').textContent = wordCount;
+    document.getElementById('fluencyScore').textContent = Math.round(score);
+    
+    let performance = `
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 0.5rem;">
+            <p style="margin-bottom: 0.5rem;"><strong>Category:</strong> ${categories[currentCategory].name}</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Words Generated:</strong> ${wordCount}</p>
+            <p style="margin-bottom: 1rem;"><strong>Score:</strong> ${Math.round(score)}/100</p>
+            <p style="color: var(--text-secondary);">
+                ${score >= 80 ? 'Excellent verbal fluency! You generated words quickly and efficiently.' :
+                  score >= 60 ? 'Good verbal fluency. Your word generation is above average.' :
+                  score >= 40 ? 'Fair verbal fluency. Practice can help improve word retrieval speed.' :
+                  'Verbal fluency needs attention. Consider consulting a healthcare professional.'}
+            </p>
+        </div>
+    `;
+    
+    document.getElementById('performanceDetails').innerHTML = performance;
+    
+    if (currentCategory < categories.length - 1) {
+        document.getElementById('nextCategoryBtn').style.display = 'inline-block';
+        document.getElementById('finishBtn').style.display = 'none';
+    } else {
+        document.getElementById('nextCategoryBtn').style.display = 'none';
+        document.getElementById('finishBtn').style.display = 'inline-block';
+    }
+}
+
+function nextCategory() {
+    currentCategory++;
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('testSection').classList.remove('hidden');
+    loadCategory();
+}
+
+async function finishTest() {
+    const totalWords = categoryResults.reduce((sum, cat) => sum + cat.words, 0);
+    const avgScore = categoryResults.reduce((sum, cat) => sum + cat.score, 0) / categoryResults.length;
+    
+    // Submit to backend
+    const response = await fetch('/api/submit-verbal-fluency', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            total_words: totalWords,
+            average_score: avgScore,
+            category_results: categoryResults
+        })
+    });
+    
+    showFinalResults(totalWords, avgScore);
+}
+
+function showFinalResults(totalWords, avgScore) {
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('finalResultsSection').classList.remove('hidden');
+    
+    document.getElementById('finalTotalWords').textContent = totalWords;
+    document.getElementById('finalScore').textContent = Math.round(avgScore);
+    
+    let breakdown = '<div class="grid grid-cols-1" style="gap: 1rem;">';
+    categoryResults.forEach(result => {
+        breakdown += `
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${result.category}</strong>
+                    <p style="color: var(--text-secondary); margin-top: 0.25rem;">${result.words} words</p>
+                </div>
+                <div class="badge badge-${result.score >= 80 ? 'success' : result.score >= 60 ? 'warning' : 'danger'}" style="font-size: 1.25rem; padding: 0.5rem 1rem;">
+                    ${result.score}
+                </div>
+            </div>
+        `;
+    });
+    breakdown += '</div>';
+    
+    document.getElementById('categoryBreakdown').innerHTML = breakdown;
+}
+</script>
+{% endblock %}

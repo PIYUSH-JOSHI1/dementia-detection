@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Dementia Detection System{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="login-title">🧠 Dementia Detection</h1>
+            <p class="login-subtitle">AI-Powered Early Detection System</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-input" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-full">Login</button>
+        </form>
+
+        <div class="quick-login">
+            <p class="quick-login-title">Quick Login (Demo)</p>
+            <div class="quick-login-buttons">
+                <button onclick="quickLogin('doctor')" class="btn btn-outline w-full">
+                    Login as Doctor
+                </button>
+                <button onclick="quickLogin('patient')" class="btn btn-outline w-full">
+                    Login as Patient
+                </button>
+            </div>
+        </div>
+
+        <div class="register-link" style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Don't have an account?</p>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary w-full" style="display: inline-block; text-decoration: none;">
+                Register as New Patient
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function quickLogin(role) {
+    const credentials = {
+        doctor: { email: '{{ default_doctor.email }}', password: '{{ default_doctor.password }}' },
+        patient: { email: '{{ default_patient.email }}', password: '{{ default_patient.password }}' }
+    };
+    
+    document.getElementById('email').value = credentials[role].email;
+    document.getElementById('password').value = credentials[role].password;
+    document.querySelector('form').submit();
+}
+</script>
+{% endblock %}
