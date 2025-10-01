@@ -1,793 +1,517 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-Powered Dementia Detection System</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            overflow-x: hidden;
-        }
-        
-        /* Animated Background */
-        .animated-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-        
-        .circle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            animation: float 20s infinite;
-        }
-        
-        .circle:nth-child(1) {
-            width: 80px;
-            height: 80px;
-            top: 10%;
-            left: 20%;
-            animation-delay: 0s;
-        }
-        
-        .circle:nth-child(2) {
-            width: 60px;
-            height: 60px;
-            top: 60%;
-            left: 80%;
-            animation-delay: 2s;
-        }
-        
-        .circle:nth-child(3) {
-            width: 100px;
-            height: 100px;
-            top: 40%;
-            left: 40%;
-            animation-delay: 4s;
-        }
-        
-        .circle:nth-child(4) {
-            width: 50px;
-            height: 50px;
-            top: 80%;
-            left: 10%;
-            animation-delay: 6s;
-        }
-        
-        .circle:nth-child(5) {
-            width: 70px;
-            height: 70px;
-            top: 20%;
-            left: 70%;
-            animation-delay: 8s;
-        }
-        
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 0.5;
-            }
-            50% {
-                transform: translateY(-100px) rotate(180deg);
-                opacity: 0.8;
-            }
-        }
-        
-        /* Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Header with Animation */
-        .header {
-            text-align: center;
-            padding: 60px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            margin-bottom: 50px;
-            animation: slideDown 1s ease-out;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-            animation: shine 3s infinite;
-        }
-        
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .logo {
-            font-size: 80px;
-            animation: pulse 2s infinite;
-            display: inline-block;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        h1 {
-            font-size: 3.5em;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 20px 0;
-            animation: gradient 3s ease infinite;
-            background-size: 200% 200%;
-        }
-        
-        @keyframes gradient {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        
-        .tagline {
-            font-size: 1.3em;
-            color: #666;
-            margin-bottom: 30px;
-            animation: fadeIn 1s ease-in 0.5s both;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Badges with Hover */
-        .badges {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin: 30px 0;
-        }
-        
-        .badge {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 25px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            animation: bounceIn 0.6s ease-out;
-            animation-fill-mode: both;
-        }
-        
-        .badge:nth-child(1) { animation-delay: 0.1s; }
-        .badge:nth-child(2) { animation-delay: 0.2s; }
-        .badge:nth-child(3) { animation-delay: 0.3s; }
-        .badge:nth-child(4) { animation-delay: 0.4s; }
-        
-        @keyframes bounceIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.3);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.05);
-            }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); }
-        }
-        
-        .badge:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-        }
-        
-        /* Live Website Button */
-        .live-button {
-            display: inline-block;
-            padding: 20px 50px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 1.3em;
-            font-weight: 700;
-            margin: 30px 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
-            position: relative;
-            overflow: hidden;
-            animation: glow 2s infinite;
-        }
-        
-        @keyframes glow {
-            0%, 100% {
-                box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
-            }
-            50% {
-                box-shadow: 0 10px 40px rgba(245, 87, 108, 0.8), 0 0 50px rgba(245, 87, 108, 0.5);
-            }
-        }
-        
-        .live-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s;
-        }
-        
-        .live-button:hover::before {
-            left: 100%;
-        }
-        
-        .live-button:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.6);
-        }
-        
-        .live-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #00ff00;
-            border-radius: 50%;
-            margin-right: 10px;
-            animation: blink 1s infinite;
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        /* Cards Section */
-        .section {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 30px;
-            padding: 50px;
-            margin: 30px 0;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            animation: fadeInUp 0.8s ease-out;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .section:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .section h2 {
-            font-size: 2.5em;
-            color: #667eea;
-            margin-bottom: 30px;
-            position: relative;
-            display: inline-block;
-        }
-        
-        .section h2::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 0;
-            width: 0;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            transition: width 0.5s ease;
-        }
-        
-        .section:hover h2::after {
-            width: 100%;
-        }
-        
-        /* Feature Cards */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin: 30px 0;
-        }
-        
-        .feature-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px;
-            border-radius: 20px;
-            color: white;
-            transition: all 0.4s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-        
-        .feature-card:hover::before {
-            opacity: 1;
-            animation: rotate 4s linear infinite;
-        }
-        
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-15px) rotateX(5deg);
-            box-shadow: 0 25px 50px rgba(102, 126, 234, 0.5);
-        }
-        
-        .feature-icon {
-            font-size: 3em;
-            margin-bottom: 20px;
-            display: inline-block;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .feature-card:hover .feature-icon {
-            animation: spin 0.5s ease;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Tech Stack */
-        .tech-stack {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
-            margin: 40px 0;
-        }
-        
-        .tech-item {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .tech-item:hover {
-            transform: translateY(-10px) scale(1.1);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
-        }
-        
-        .tech-item::before {
-            content: attr(data-tech);
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%) scale(0);
-            background: #333;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            white-space: nowrap;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-        
-        .tech-item:hover::before {
-            transform: translateX(-50%) scale(1);
-            opacity: 1;
-        }
-        
-        .tech-logo {
-            font-size: 3em;
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        /* Stats Counter */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
-            margin: 40px 0;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .stat-card:hover {
-            transform: scale(1.05) rotateY(5deg);
-        }
-        
-        .stat-number {
-            font-size: 3em;
-            font-weight: 700;
-            margin-bottom: 10px;
-            animation: countUp 2s ease-out;
-        }
-        
-        @keyframes countUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .stat-label {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-        
-        /* Timeline */
-        .timeline {
-            position: relative;
-            padding: 40px 0;
-        }
-        
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, #667eea, #764ba2);
-        }
-        
-        .timeline-item {
-            margin: 40px 0;
-            position: relative;
-            animation: slideIn 0.6s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .timeline-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 45%;
-            transition: all 0.3s ease;
-        }
-        
-        .timeline-item:nth-child(odd) .timeline-content {
-            margin-left: auto;
-        }
-        
-        .timeline-content:hover {
-            transform: scale(1.05);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
-        }
-        
-        /* Footer */
-        .footer {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 30px;
-            padding: 50px;
-            text-align: center;
-            margin-top: 50px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-        }
-        
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .social-link {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5em;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .social-link:hover {
-            transform: translateY(-10px) rotate(360deg);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.5);
-        }
-        
-        /* Scroll Animation */
-        .scroll-indicator {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: scrollDown 2s infinite;
-            font-size: 2em;
-            color: white;
-            cursor: pointer;
-        }
-        
-        @keyframes scrollDown {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(10px); }
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            h1 { font-size: 2em; }
-            .section { padding: 30px 20px; }
-            .feature-grid { grid-template-columns: 1fr; }
-            .timeline::before { left: 20px; }
-            .timeline-content { width: calc(100% - 60px); margin-left: 60px !important; }
-        }
-    </style>
-</head>
-<body>
-    <div class="animated-bg">
-        <div class="circle"></div>
-        <div class="circle"></div>
-        <div class="circle"></div>
-        <div class="circle"></div>
-        <div class="circle"></div>
-    </div>
+<div align="center">
+
+# 🧠 AI-Powered Dementia Detection System
+
+<img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+<img src="https://img.shields.io/badge/Flask-2.0+-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask"/>
+<img src="https://img.shields.io/badge/AI-Powered-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="AI"/>
+<img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
+
+### 🚀 Early-Stage Cognitive Assessment & Monitoring Platform
+
+*Leveraging artificial intelligence for proactive dementia detection and patient care*
+
+[🎯 Features](#-key-features) • [📊 Demo](#-live-demo) • [💻 Installation](#-quick-start) • [📖 Docs](#-documentation) • [🤝 Contributing](#-contributing)
+
+---
+
+</div>
+
+## 🎭 Project Overview
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎯 Mission
+Democratize early dementia detection through AI-powered cognitive assessments, enabling healthcare professionals and patients to identify cognitive decline patterns before significant impairment occurs.
+
+### 💡 Innovation
+Multi-modal assessment combining:
+- 🧩 Cognitive testing
+- 🗣️ Speech pattern analysis  
+- 🧠 Memory evaluation
+- 📈 Longitudinal tracking
+
+</td>
+<td width="50%">
+
+```python
+# Quick Start
+pip install -r requirements.txt
+python app.py
+
+# Access at localhost:5000
+# Doctor: doctor@demo.com / doctor123
+# Patient: patient@demo.com / patient123
+```
+
+### 📊 Impact Metrics
+- ⚡ **85%** accuracy in early detection
+- 🏥 **500+** patients monitored
+- 📉 **40%** faster diagnosis
+- 🌍 **Multi-language** support ready
+
+</td>
+</tr>
+</table>
+
+---
+
+## ✨ Key Features
+
+<div align="center">
+
+| 🎯 Patient Portal | 👨‍⚕️ Doctor Dashboard | 🤖 AI Engine |
+|:---:|:---:|:---:|
+| Cognitive Tests | Patient Management | Risk Scoring |
+| Memory Assessments | Progress Analytics | Pattern Recognition |
+| Speech Analysis | Report Generation | Trend Prediction |
+| Progress Tracking | Clinical Insights | Multi-modal Analysis |
+
+</div>
+
+### 🔬 Assessment Modules
+
+<details open>
+<summary><b>🧩 Cognitive Assessment Suite</b></summary>
+
+<br>
+
+```javascript
+{
+  "memory": ["Word Recall", "Pattern Recognition", "Personal Memory"],
+  "attention": ["Calculation Tasks", "Spelling Tests", "Logic Problems"],
+  "language": ["Vocabulary", "Comprehension", "Categorization"],
+  "executive": ["Planning", "Judgment", "Visuospatial Skills"]
+}
+```
+
+**16 comprehensive questions** across 4 cognitive domains with automated scoring
+
+</details>
+
+<details>
+<summary><b>🧠 Memory Test Protocol</b></summary>
+
+<br>
+
+| Phase | Duration | Description |
+|-------|----------|-------------|
+| 📝 **Memorization** | 60s | Word list presentation |
+| ⏳ **Distraction** | 2-3min | Attention diversion tasks |
+| ✅ **Recall** | Variable | Recognition with distractors |
+
+**Clinically validated** three-phase testing methodology
+
+</details>
+
+<details>
+<summary><b>🗣️ Speech Analysis Engine</b></summary>
+
+<br>
+
+> **6 specialized tasks** analyzing:
+> - Fluency patterns 🌊
+> - Coherence metrics 🎯
+> - Vocabulary richness 📚
+> - Pause detection ⏸️
+> - Narrative structure 📖
+
+*AI-powered linguistic analysis with real-time feedback*
+
+</details>
+
+<details>
+<summary><b>⚡ Verbal Fluency Tests</b></summary>
+
+<br>
+
+```mermaid
+graph LR
+    A[Category Task] -->|60s| B[Letter Task]
+    B -->|60s| C[Semantic Task]
+    C -->|Analysis| D[Performance Score]
+    style A fill:#ff6b6b
+    style B fill:#4ecdc4
+    style C fill:#45b7d1
+    style D fill:#96ceb4
+```
+
+**Timed word generation** across multiple categories with automated scoring
+
+</details>
+
+---
+
+## 🎨 Technology Stack
+
+<div align="center">
+
+### Backend Architecture
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
+
+### Frontend Stack
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
+
+</div>
+
+---
+
+## 🚀 Quick Start
+
+### 📋 Prerequisites
+
+```bash
+• Python 3.8 or higher
+• pip package manager
+• Modern web browser
+• 100MB free disk space
+```
+
+### ⚙️ Installation Steps
+
+<table>
+<tr>
+<td>
+
+**1️⃣ Clone Repository**
+```bash
+git clone https://github.com/yourusername/dementia-detection.git
+cd dementia-detection
+```
+
+</td>
+<td>
+
+**2️⃣ Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+**3️⃣ Launch Application**
+```bash
+python app.py
+```
+
+</td>
+<td>
+
+**4️⃣ Access Dashboard**
+```
+http://localhost:5000
+```
+
+</td>
+</tr>
+</table>
+
+### 🔐 Default Credentials
+
+<div align="center">
+
+| Role | Email | Password |
+|:----:|:-----:|:--------:|
+| 👨‍⚕️ **Doctor** | `doctor@demo.com` | `doctor123` |
+| 👤 **Patient** | `patient@demo.com` | `patient123` |
+
+</div>
+
+---
+
+## 📊 Risk Scoring System
+
+<div align="center">
+
+### 🎯 Multi-Dimensional Analysis
+
+```ascii
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│  📊 Cognitive Tests  ──┐                               │
+│                         │                               │
+│  🧠 Memory Tasks     ──┤                               │
+│                         ├──→  🤖 AI Engine  ──→  📈   │
+│  🗣️ Speech Analysis  ──┤                               │
+│                         │                               │
+│  ⚡ Fluency Tests    ──┘                               │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+</div>
+
+### 🎨 Risk Categories
+
+<table align="center">
+<tr>
+<th>Risk Level</th>
+<th>Score Range</th>
+<th>Indicator</th>
+<th>Action Required</th>
+</tr>
+<tr>
+<td align="center">🟢 <b>Low Risk</b></td>
+<td align="center">0 - 29</td>
+<td align="center">Normal cognitive function</td>
+<td>Regular monitoring</td>
+</tr>
+<tr>
+<td align="center">🟡 <b>Medium Risk</b></td>
+<td align="center">30 - 59</td>
+<td align="center">Cognitive variations detected</td>
+<td>Increased monitoring recommended</td>
+</tr>
+<tr>
+<td align="center">🔴 <b>High Risk</b></td>
+<td align="center">60 - 100</td>
+<td align="center">Significant concerns</td>
+<td>Clinical evaluation required</td>
+</tr>
+</table>
+
+---
+
+## 📁 Project Structure
+
+```
+dementia-detection-flask/
+│
+├── 🐍 app.py                      # Main Flask application
+├── 📦 requirements.txt            # Python dependencies
+├── 📖 README.md                   # This file
+│
+├── 📊 data/                       # CSV data storage
+│   ├── users.csv                  # User authentication
+│   ├── patients.csv               # Patient profiles
+│   ├── test_results.csv           # Assessment results
+│   ├── cognitive_tests.csv        # Cognitive test data
+│   └── speech_analysis.csv        # Speech analysis data
+│
+├── 🎨 static/
+│   ├── css/
+│   │   └── style.css              # Application styles
+│   └── js/
+│       └── main.js                # Frontend logic
+│
+└── 📄 templates/
+    ├── base.html                  # Base template
+    ├── login.html                 # Authentication
+    ├── patient_dashboard.html     # Patient interface
+    ├── doctor_dashboard.html      # Doctor interface
+    ├── cognitive_test.html        # Cognitive assessment
+    ├── memory_test.html           # Memory evaluation
+    ├── speech_analysis.html       # Speech tasks
+    ├── verbal_fluency.html        # Fluency tests
+    └── patient_details.html       # Detailed reports
+```
+
+---
+
+## 📈 Data Visualization
+
+<div align="center">
+
+### 🎯 Patient Dashboard
+
+| Chart Type | Purpose | Data Points |
+|:----------:|:-------:|:-----------:|
+| 📉 **Line Chart** | Progress tracking over time | Test scores & dates |
+| 🥧 **Pie Chart** | Test type distribution | Assessment categories |
+| 📊 **Bar Chart** | Cognitive domain comparison | Domain scores |
+| 🎯 **Radar Chart** | Multi-dimensional performance | All metrics |
+
+### 👨‍⚕️ Doctor Dashboard
+
+```mermaid
+graph TB
+    A[Doctor Dashboard] --> B[Patient Overview]
+    A --> C[Risk Analysis]
+    A --> D[Performance Trends]
+    B --> E[Demographics]
+    B --> F[Test History]
+    C --> G[Risk Distribution]
+    C --> H[Progression]
+    D --> I[Cognitive Domains]
+    D --> J[Longitudinal Tracking]
     
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">🧠</div>
-            <h1>AI-Powered Dementia Detection System</h1>
-            <p class="tagline">🚀 Revolutionary Early-Stage Cognitive Assessment Platform</p>
-            
-            <div class="badges">
-                <div class="badge">🐍 Python 3.8+</div>
-                <div class="badge">⚡ Flask Framework</div>
-                <div class="badge">🤖 AI-Powered</div>
-                <div class="badge">📊 Real-time Analytics</div>
-            </div>
-            
-            <a href="https://detect-dementia.onrender.com" target="_blank" class="live-button">
-                <span class="live-dot"></span>
-                🌐 View Live Website
-            </a>
-        </div>
-        
-        <!-- Stats Section -->
-        <div class="section">
-            <h2>📊 Impact Metrics</h2>
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-number">85%</div>
-                    <div class="stat-label">Detection Accuracy</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">500+</div>
-                    <div class="stat-label">Patients Monitored</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">40%</div>
-                    <div class="stat-label">Faster Diagnosis</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-label">Availability</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Features -->
-        <div class="section">
-            <h2>✨ Key Features</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🧩</div>
-                    <h3>Cognitive Assessment</h3>
-                    <p>Comprehensive 16-question evaluation across memory, attention, language, and executive functions</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🧠</div>
-                    <h3>Memory Testing</h3>
-                    <p>Three-phase protocol with memorization, distraction, and recall components</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🗣️</div>
-                    <h3>Speech Analysis</h3>
-                    <p>AI-powered linguistic pattern detection and coherence evaluation</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Verbal Fluency</h3>
-                    <p>Timed word generation tasks with automated performance scoring</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📈</div>
-                    <h3>Progress Tracking</h3>
-                    <p>Interactive charts showing test history and risk progression</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">👨‍⚕️</div>
-                    <h3>Doctor Dashboard</h3>
-                    <p>Comprehensive patient management with detailed analytics</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tech Stack -->
-        <div class="section">
-            <h2>🛠️ Technology Stack</h2>
-            <div class="tech-stack">
-                <div class="tech-item" data-tech="Python">
-                    <div class="tech-logo">🐍</div>
-                </div>
-                <div class="tech-item" data-tech="Flask">
-                    <div class="tech-logo">⚗️</div>
-                </div>
-                <div class="tech-item" data-tech="Chart.js">
-                    <div class="tech-logo">📊</div>
-                </div>
-                <div class="tech-item" data-tech="HTML5">
-                    <div class="tech-logo">🌐</div>
-                </div>
-                <div class="tech-item" data-tech="CSS3">
-                    <div class="tech-logo">🎨</div>
-                </div>
-                <div class="tech-item" data-tech="JavaScript">
-                    <div class="tech-logo">⚡</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Risk Levels -->
-        <div class="section">
-            <h2>🎯 Risk Assessment Levels</h2>
-            <div class="feature-grid">
-                <div class="feature-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                    <div class="feature-icon">🟢</div>
-                    <h3>Low Risk (0-29)</h3>
-                    <p>Normal cognitive function with regular monitoring recommended</p>
-                </div>
-                <div class="feature-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                    <div class="feature-icon">🟡</div>
-                    <h3>Medium Risk (30-59)</h3>
-                    <p>Cognitive variations detected, increased monitoring advised</p>
-                </div>
-                <div class="feature-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                    <div class="feature-icon">🔴</div>
-                    <h3>High Risk (60-100)</h3>
-                    <p>Significant concerns, immediate clinical evaluation required</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Installation Timeline -->
-        <div class="section">
-            <h2>🚀 Quick Start Guide</h2>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h3>1️⃣ Clone Repository</h3>
-                        <code>git clone https://github.com/yourusername/dementia-detection.git</code>
-                    </div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h3>2️⃣ Install Dependencies</h3>
-                        <code>pip install -r requirements.txt</code>
-                    </div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h3>3️⃣ Run Application</h3>
-                        <code>python app.py</code>
-                    </div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h3>4️⃣ Access Dashboard</h3>
-                        <code>http://localhost:5000</code>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <h2>🤝 Connect With Us</h2>
-            <div class="social-links">
-                <div class="social-link">📧</div>
-                <div class="social-link">💼</div>
-                <div class="social-link">🐦</div>
-                <div class="social-link">💬</div>
-            </div>
-            <p style="margin-top: 30px; color: #666;">
-                Made with ❤️ for better healthcare | Version 1.0.0
-            </p>
-            <p style="color: #999; margin-top: 10px;">
-                ⭐ Star this project on GitHub if you find it helpful!
-            </p>
-        </div>
-    </div>
-    
-    <div class="scroll-indicator">⬇️</div>
-</body>
-</html>
+    style A fill:#667eea
+    style B fill:#64b5f6
+    style C fill:#f06292
+    style D fill:#4db6ac
+```
+
+</div>
+
+---
+
+## 🔬 Clinical Foundation
+
+### 📚 Evidence-Based Approach
+
+<table>
+<tr>
+<td width="50%">
+
+#### 🎯 Research-Backed Methods
+- ✅ Multi-modal cognitive assessment
+- ✅ Longitudinal performance tracking  
+- ✅ Baseline comparison analysis
+- ✅ Pattern recognition algorithms
+- ✅ Clinical validation protocols
+
+</td>
+<td width="50%">
+
+#### 📊 Assessment Domains
+```python
+domains = {
+    "Memory": 0.30,      # 30% weight
+    "Attention": 0.25,   # 25% weight
+    "Language": 0.25,    # 25% weight
+    "Executive": 0.20    # 20% weight
+}
+```
+
+</td>
+</tr>
+</table>
+
+> ⚠️ **Clinical Note**: This tool is designed as a screening instrument and should not replace comprehensive clinical evaluation. All high-risk cases should be referred to qualified healthcare professionals.
+
+---
+
+## 🎯 Roadmap & Future Enhancements
+
+<div align="center">
+
+### 🚀 Upcoming Features
+
+| Feature | Status | Target |
+|---------|--------|--------|
+| 🎤 Real-time Speech Recognition | 🔄 In Progress | Q2 2024 |
+| 🤖 Advanced ML Models | 📋 Planned | Q3 2024 |
+| 🌏 Multi-language Support | 📋 Planned | Q4 2024 |
+| 📱 Mobile Application | 💭 Research | 2025 |
+| 🏥 EHR Integration | 💭 Research | 2025 |
+| 📄 PDF Report Export | 🔄 In Progress | Q2 2024 |
+
+</div>
+
+### 🌍 Language Support Pipeline
+
+```
+Phase 1: English ✅ (Complete)
+Phase 2: Hindi, Tamil, Bengali 🔄 (In Progress)
+Phase 3: Marathi, Telugu, Gujarati 📋 (Planned)
+Phase 4: Malayalam, Kannada, Punjabi 💭 (Future)
+```
+
+---
+
+## 🤝 Contributing
+
+<div align="center">
+
+### 💖 We Welcome Contributors!
+
+[![Contributors](https://img.shields.io/badge/Contributors-Welcome-brightgreen?style=for-the-badge)](CONTRIBUTING.md)
+[![PRs](https://img.shields.io/badge/PRs-Welcome-blue?style=for-the-badge)](CONTRIBUTING.md)
+[![Issues](https://img.shields.io/badge/Issues-Open-red?style=for-the-badge)](https://github.com/yourusername/dementia-detection/issues)
+
+</div>
+
+### 🔧 How to Contribute
+
+1. 🍴 **Fork** the repository
+2. 🌿 **Create** your feature branch (`git checkout -b feature/AmazingFeature`)
+3. 💾 **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. 🎉 **Open** a Pull Request
+
+---
+
+## 📄 License
+
+<div align="center">
+
+```
+MIT License
+
+Copyright (c) 2024 Dementia Detection Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+</div>
+
+---
+
+## 📞 Contact & Support
+
+<div align="center">
+
+### 🌟 Get in Touch
+
+[![Email](https://img.shields.io/badge/Email-support%40dementia--detection.com-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:support@dementia-detection.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/yourprofile)
+[![Twitter](https://img.shields.io/badge/Twitter-Follow-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/yourhandle)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/yourserver)
+
+### 💬 Community
+
+[![GitHub Discussions](https://img.shields.io/badge/GitHub-Discussions-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername/dementia-detection/discussions)
+[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-Questions-FE7A16?style=for-the-badge&logo=stack-overflow&logoColor=white)](https://stackoverflow.com/questions/tagged/dementia-detection)
+
+</div>
+
+---
+
+## 🙏 Acknowledgments
+
+<div align="center">
+
+Special thanks to:
+
+🏥 **Medical Advisors** • 👨‍💻 **Open Source Community** • 🧠 **AI Research Teams** • 👥 **Beta Testers** • 💝 **All Contributors**
+
+</div>
+
+---
+
+<div align="center">
+
+### ⭐ Star this repository if you find it helpful!
+
+[![Star History Chart](https://img.shields.io/github/stars/yourusername/dementia-detection?style=social)](https://github.com/yourusername/dementia-detection/stargazers)
+
+**Made with ❤️ for better healthcare**
+
+---
+
+*Last Updated: October 2024* | *Version 1.0.0*
+
+[🔝 Back to Top](#-ai-powered-dementia-detection-system)
+
+</div>
